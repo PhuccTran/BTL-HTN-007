@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cache pinned official ST/ARM CMSIS headers for the SPI model test only."""
+
 from pathlib import Path
 import hashlib
 import json
@@ -8,7 +8,6 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = Path(__file__).parent / 'fixtures/cmsis_sources.json'
-
 
 def ensure_cmsis():
     entries = json.loads(MANIFEST.read_text())
@@ -31,7 +30,7 @@ def ensure_cmsis():
         if not entry['url'].startswith(('https://github.com/STMicroelectronics/',
                                         'https://github.com/ARM-software/')):
             raise ValueError('Dependency URL must reference official ST/ARM source')
-        # Use raw.githubusercontent.com to retrieve file content, not a GitHub HTML page.
+
         url = entry['url'].replace('https://github.com/', 'https://raw.githubusercontent.com/', 1)
         url = url.replace('/blob/', '/', 1)
         request = urllib.request.Request(url, headers={'User-Agent': 'htn007-display-model-tests'})
@@ -45,7 +44,6 @@ def ensure_cmsis():
         temporary.replace(target)
         print(f'Cached official CMSIS: {relative}', flush=True)
     return directory
-
 
 if __name__ == '__main__':
     print(ensure_cmsis())

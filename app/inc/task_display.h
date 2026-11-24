@@ -10,11 +10,9 @@ typedef struct {
     BaseType_t ready;
 } DisplayStats_t;
 
-/* Hàm tạo task được gọi tuần tự trước scheduler của project đích. */
+/* Gọi tuần tự trước scheduler. */
 BaseType_t task_display_create(void);
-/* Task producer: timeout 0..100 ms, Queue đầy trả pdFAIL, không tự bỏ sự kiện.
- * Không được dùng từ ISR. Không dùng Queue cảm biến của UART để tránh tranh nhận.
- */
+/* Chỉ gọi từ task; timeout 0..100 ms. Queue đầy trả pdFAIL để producer retry. */
 BaseType_t task_display_post(const DisplayMsg_t *msg,TickType_t timeout);
 void task_display_get_stats(DisplayStats_t *out);
 #endif

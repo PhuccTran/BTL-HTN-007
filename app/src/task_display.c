@@ -30,9 +30,7 @@ static void prvDisplayTask(void *argument)
             }
             task_display_render_invalidate(&s_render);
         }
-        /* Queue rỗng: ngủ tối đa 50 ms; có message thì producer đánh thức ngay.
-         * Timeout cho phép retry redraw lỗi và cập nhật thống kê dù không có data.
-         */
+
         BaseType_t received=xQueueReceive(s_display_queue,&msg,pdMS_TO_TICKS(APP_DISPLAY_QUEUE_WAIT_MS));
         TickType_t start=xTaskGetTickCount();
         hal_st7735_status_t result=received==pdPASS?
@@ -60,10 +58,7 @@ BaseType_t task_display_create(void)
 {
     if (__get_IPSR()!=0U || xTaskGetSchedulerState()!=taskSCHEDULER_NOT_STARTED) { return pdFAIL; }
     if (s_display_task!=NULL) { return pdPASS; }
-    /* config hook malloc-failed của project dừng CPU. Kiểm tra trước khi cấp
-     * phát, chừa chỗ cho Idle/Timer. Không tự ý sửa heap 8 KiB của file chung.
-     * Startup phải tuần tự; nếu nhóm thêm task, gọi sau khi đã cân đối heap.
-     */
+    /* Chừa heap cho Idle/Timer trước khi tạo tài nguyên tuần tự. */
     size_t needed=APP_DISPLAY_STACK_WORDS*sizeof(StackType_t)+sizeof(StaticTask_t)+
         APP_DISPLAY_QUEUE_LENGTH*sizeof(DisplayMsg_t)+3U*sizeof(StaticQueue_t)+
         128U+APP_DISPLAY_STARTUP_RESERVE;
@@ -71,8 +66,7 @@ BaseType_t task_display_create(void)
     vPortGetHeapStats(&heap_stats);
     if (heap_stats.xAvailableHeapSpaceInBytes==0U && heap_stats.xNumberOfSuccessfulAllocations==0U)
     {
-        /* heap_4 khởi tạo lười: trước malloc đầu tiên, free-size trả 0 dù còn
-         * nguyên 8 KiB. Cấp phát 1 byte rồi trả lại để khởi tạo đúng heap. */
+        /* heap_4 chưa báo dung lượng trống trước lần malloc đầu tiên. */
         void *warmup=pvPortMalloc(1U);
         if (warmup==NULL) { return pdFAIL; }
         vPortFree(warmup);

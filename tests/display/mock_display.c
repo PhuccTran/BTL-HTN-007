@@ -1,6 +1,4 @@
-/* CHỈ DÙNG TEST: phát kịch bản dựng sẵn của 5 bản đồ. Không đọc BMI, không
- * kiểm tra va chạm hoặc xử lý nút. Sao/tim/cổng dưới đây đều là dữ liệu giả.
- */
+/* Chỉ dùng test. */
 #include "mock_display.h"
 #include "task_display.h"
 #include "star_maze_levels.h"
@@ -37,7 +35,7 @@ static void prvMask(DisplayUpdate_t *hud,uint16_t mask,uint8_t total)
 {
     hud->collected_star_mask=mask; hud->collected_stars=0U;
     for (uint16_t bits=mask;bits!=0U;bits>>=1) { hud->collected_stars+=(uint8_t)(bits&1U); }
-    /* Chỉ dữ liệu giả theo kịch bản. Renderer không tự tính điều kiện này. */
+
     hud->gate_open=hud->collected_stars==total?1U:0U;
 }
 
@@ -62,7 +60,7 @@ static BaseType_t prvScene(DisplayMsg_t *m,uint8_t level,uint32_t id,DisplayUpda
     if (prvPost(m)!=pdPASS) { return pdFAIL; }
     if (resume)
     {
-        /* SCENE tới trong overlay phải được giữ lại, không ghi đè notice. */
+
         vTaskDelay(pdMS_TO_TICKS(700U));
         if (prvResume(m)!=pdPASS) { return pdFAIL; }
     }
@@ -72,8 +70,7 @@ static BaseType_t prvScene(DisplayMsg_t *m,uint8_t level,uint32_t id,DisplayUpda
 
 static BaseType_t prvTrap(DisplayMsg_t *m,DisplayUpdate_t *hud,uint8_t lives)
 {
-    /* Điểm bẫy của màn 2 là (hàng 6,cột 8). Đây là teleport trong mock để test
-     * hiển thị, không phải đường điều khiển thật hoặc thuật toán va chạm. */
+
     hud->ball_x=85U; hud->ball_y=65U;
     if (prvUpdate(m,hud)!=pdPASS) { return pdFAIL; }
     vTaskDelay(pdMS_TO_TICKS(250U));
@@ -83,7 +80,7 @@ static BaseType_t prvTrap(DisplayMsg_t *m,DisplayUpdate_t *hud,uint8_t lives)
     vTaskDelay(pdMS_TO_TICKS(lives==0U?1500U:600U));
     if (lives!=0U)
     {
-        hud->ball_x=15U; hud->ball_y=15U; /* Giữ nguyên mask sao và trạng thái cổng. */
+        hud->ball_x=15U; hud->ball_y=15U;
         if (prvUpdate(m,hud)!=pdPASS) { return pdFAIL; }
         vTaskDelay(pdMS_TO_TICKS(300U));
         if (prvResume(m)!=pdPASS) { return pdFAIL; }
@@ -111,8 +108,7 @@ static BaseType_t prvWalk(DisplayMsg_t *m,uint8_t level,DisplayUpdate_t *hud)
         }
         if (level==2U && !trap_shown && hud->collected_stars!=0U)
         {
-            /* Mất một tim sau sao đầu; sau reset đi lại đường cũ nhưng sao
-             * đã nhặt không xuất hiện lại. Hai tim còn lại dùng cho màn 3..5. */
+
             if (prvTrap(m,hud,2U)!=pdPASS) { return pdFAIL; }
             trap_shown=true; k=1U; wake=xTaskGetTickCount();
             continue;
@@ -129,7 +125,7 @@ static void prvMockTask(void *argument)
     DisplayMsg_t m;
     DisplayUpdate_t hud={0};
     DisplayStats_t stats;
-    /* Chờ init hữu hạn để không dồn Queue trong lúc màn đang reset. */
+
     bool ready=false;
     for (unsigned tries=0U;tries<60U;++tries)
     {
@@ -151,13 +147,12 @@ static void prvMockTask(void *argument)
             vTaskDelay(pdMS_TO_TICKS(level==APP_DISPLAY_LEVEL_COUNT?1500U:600U));
             resume=true;
         }
-        /* Kịch bản TEST riêng: màn 2, ba lần bẫy để thấy GAME OVER.
-         * Không phải quy tắc bắt đầu game ở màn 2; lượt đầy đủ vẫn bắt đầu màn 1. */
+
         hud.lives=3U;
         if (prvScene(&m,2U,++id,&hud,true)!=pdPASS) { goto abort_mock; }
         for (unsigned loss=0U;loss<3U;++loss)
         { if (prvTrap(&m,&hud,(uint8_t)(2U-loss))!=pdPASS) { goto abort_mock; } }
-        /* Vòng kế: SCENE 1 reset sao/tim dưới overlay GAME OVER, rồi RESUME. */
+
     }
 abort_mock:
     ++g_display_mock_aborted;

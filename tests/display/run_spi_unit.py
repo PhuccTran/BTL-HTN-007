@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Chạy backend CMSIS SPI/DMA thật trên ARM; ngoại vi được mô hình hóa."""
+
 from pathlib import Path
 import json,struct,subprocess
 from fetch_model_deps import ensure_cmsis

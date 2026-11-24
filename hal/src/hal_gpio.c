@@ -3,7 +3,7 @@
 
 static void prvWrite(GPIO_TypeDef *port, uint32_t pin, bool high)
 {
-    /* BSRR cập nhật nguyên tử; không read-modify-write ODR của bạn khác. */
+
     port->BSRR = 1UL << (pin + (high ? 0U : 16U));
 }
 
@@ -55,6 +55,6 @@ bool hal_gpio_display_backlight(bool on)
     return true;
 #else
     (void)on;
-    return false; /* BL nối nguồn: API báo không hỗ trợ điều khiển. */
+    return false;
 #endif
 }

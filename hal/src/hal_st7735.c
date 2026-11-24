@@ -6,17 +6,13 @@
 #include "task.h"
 #include <stddef.h>
 
-/* Lệnh chuẩn, đối chiếu datasheet Sitronix ST7735 và driver component của ST.
- * Profile analog tham chiếu: STMicroelectronics/stm32-st7735, ST7735_Init.
- * TODO xác nhận profile analog trên module V1.1 thật (nhãn PCB không là IC ID).
- */
 enum { SWRESET=0x01, SLPOUT=0x11, NORON=0x13, INVOFF=0x20, INVON=0x21,
        DISPON=0x29, CASET=0x2A, RASET=0x2B, RAMWR=0x2C, MADCTL=0x36, COLMOD=0x3A };
 static SemaphoreHandle_t s_mutex;
 static bool s_ready;
-static uint8_t s_pixels[256]; /* Buffer khối, không phải framebuffer 40960 byte. */
+static uint8_t s_pixels[256];
 
-/* Font bitmap tự tạo: mỗi byte là một hàng, bit 4 ở bên trái. */
+/* Mỗi byte font là một hàng, bit 4 ở bên trái. */
 static const uint8_t s_digits[10][7] = {
  {14,17,19,21,25,17,14},{4,12,4,4,4,4,14},{14,17,1,2,4,8,31},
  {30,1,1,14,1,1,30},{2,6,10,18,31,2,2},{31,16,16,30,1,1,30},
@@ -90,10 +86,7 @@ static hal_st7735_status_t prvCommand(uint8_t command, const uint8_t *args, size
 static hal_st7735_status_t prvPanel(TickType_t start,TickType_t budget)
 {
 #if BSP_DISPLAY_PANEL_PROFILE
-    /* Các giá trị frame/power/gamma công bố bởi component ST, gửi gộp đúng
-     * số tham số của mỗi lệnh. Không dùng delay bận hoặc bảng thanh ghi F103.
-     * Nguồn tham chiếu ST7735 được ghi tại README.md của module.
-     */
+    /* Profile frame/power/gamma: STMicroelectronics/stm32-st7735, ST7735_Init. */
     static const struct { uint8_t command,n,args[16]; } profile[]={
         {0xB1,3,{0x01,0x2C,0x2D}}, {0xB2,3,{0x01,0x2C,0x2D}},
         {0xB3,6,{0x01,0x2C,0x2D,0x01,0x2C,0x2D}}, {0xB4,1,{0x07}},
@@ -211,17 +204,17 @@ hal_st7735_status_t hal_st7735_init(void)
     (void)hal_gpio_display_backlight(false);
     hal_gpio_display_reset(true); vTaskDelay(prvTicks(20U));
     hal_gpio_display_reset(false); vTaskDelay(prvTicks(150U));
-    s=prvCommand(SWRESET,NULL,0U,start,budget); /* Nạp mặc định thanh ghi. */
+    s=prvCommand(SWRESET,NULL,0U,start,budget);
     if (s == HAL_ST7735_OK) { vTaskDelay(prvTicks(150U)); s=prvCommand(SLPOUT,NULL,0U,start,budget); }
     if (s == HAL_ST7735_OK) { vTaskDelay(prvTicks(150U)); }
     if (s == HAL_ST7735_OK) { s=prvPanel(start,budget); }
-    uint8_t arg=0x05U; /* COLMOD 16 bit: RGB565, hai byte một pixel. */
+    uint8_t arg=0x05U;
     if (s == HAL_ST7735_OK) { s=prvCommand(COLMOD,&arg,1U,start,budget); }
-    arg=BSP_DISPLAY_MADCTL; /* Hướng quét portrait và RGB/BGR. */
+    arg=BSP_DISPLAY_MADCTL;
     if (s == HAL_ST7735_OK) { s=prvCommand(MADCTL,&arg,1U,start,budget); }
     if (s == HAL_ST7735_OK) { s=prvCommand(BSP_DISPLAY_INVERT ? INVON : INVOFF,NULL,0U,start,budget); }
     if (s == HAL_ST7735_OK) { s=prvCommand(NORON,NULL,0U,start,budget); }
-    /* Xóa RAM trước DISPON để tránh hiện dữ liệu ngẫu nhiên. */
+
     if (s == HAL_ST7735_OK) { s=prvRect(0,0,128,160,HAL_ST7735_WHITE,start,budget); }
     if (s == HAL_ST7735_OK) { s=prvCommand(DISPON,NULL,0U,start,budget); }
     if (s == HAL_ST7735_OK)
@@ -252,7 +245,7 @@ hal_st7735_status_t hal_st7735_draw_circle_filled(int16_t x,int16_t y,uint16_t r
     for (int32_t dy=-r; dy<=r && s==HAL_ST7735_OK; ++dy)
     {
         int32_t dx=r;
-        while (dx*dx+dy*dy>r*r) { --dx; } /* Tối đa 160 vòng, không sqrt/float. */
+        while (dx*dx+dy*dy>r*r) { --dx; }
         s=prvRect((int32_t)x-dx,(int32_t)y+dy,2*dx+1,1,c,start,budget);
     }
     return prvEnd(s);

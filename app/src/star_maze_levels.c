@@ -1,8 +1,7 @@
 #include "star_maze_levels.h"
 
-/* Each map occupies 144 bytes of flash (uint8_t per tile). */
 const uint8_t star_maze_levels[STAR_MAZE_NUM_LEVELS][STAR_MAZE_ROWS][STAR_MAZE_COLS] = {
-  /* Level 1: LAM_QUEN */
+
   {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -17,7 +16,7 @@ const uint8_t star_maze_levels[STAR_MAZE_NUM_LEVELS][STAR_MAZE_ROWS][STAR_MAZE_C
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
   },
-  /* Level 2: SAN_SAO */
+
   {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
@@ -32,7 +31,7 @@ const uint8_t star_maze_levels[STAR_MAZE_NUM_LEVELS][STAR_MAZE_ROWS][STAR_MAZE_C
     {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 3, 1},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
   },
-  /* Level 3: NE_BAY */
+
   {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 2, 1, 0, 0, 0, 0, 4, 5, 4, 0, 1},
@@ -47,7 +46,7 @@ const uint8_t star_maze_levels[STAR_MAZE_NUM_LEVELS][STAR_MAZE_ROWS][STAR_MAZE_C
     {1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 3, 1},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
   },
-  /* Level 4: NGO_CUT */
+
   {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 4, 1},
@@ -62,7 +61,7 @@ const uint8_t star_maze_levels[STAR_MAZE_NUM_LEVELS][STAR_MAZE_ROWS][STAR_MAZE_C
     {1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 3, 1},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
   },
-  /* Level 5: THU_THACH */
+
   {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 2, 5, 4, 0, 0, 0, 0, 1, 0, 1, 1},

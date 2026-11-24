@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thực thi một vòng mock 5 màn, trap giữ sao, YOU WIN và GAME OVER trên ARM."""
+
 from pathlib import Path
 import json,struct,subprocess
 from unicorn import Uc,UC_ARCH_ARM,UC_MODE_THUMB,UC_HOOK_CODE

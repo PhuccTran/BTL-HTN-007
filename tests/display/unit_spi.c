@@ -1,4 +1,4 @@
-/* Test backend DMA thật bằng CMSIS, chỉ mô hình ngoại vi/RTOS là giả. */
+
 #include "hal_spi.h"
 #include "bsp_display.h"
 #include "task.h"
@@ -59,12 +59,12 @@ void test_entry(void)
     s_scheduler=0; CHECK(hal_spi_display_write(data,1U,10U)==HAL_SPI_INVALID); s_scheduler=2;
     s_mode=1; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_TIMEOUT);
     CHECK((BSP_DISPLAY_DMA_STREAM->CR&DMA_SxCR_EN)==0U && (SPI1->CR2&SPI_CR2_TXDMAEN)==0U);
-    s_mode=0; s_available=true; s_count=0; /* Completion cũ phải bị drain. */
+    s_mode=0; s_available=true; s_count=0;
     CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_OK && s_count==64U);
     s_mode=2; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_ERROR);
     s_mode=3; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_TIMEOUT); SPI1->SR=SPI_SR_TXE;
     s_mode=0; s_tick=UINT32_MAX-10U; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_OK);
-    /* Mô hình Python giữ EN=1 dù CPU đã clear: driver phải ngừng tái sử dụng buffer. */
+
     test_stuck_dma=1U; s_mode=4; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_ERROR);
     s_mode=0; CHECK(hal_spi_display_write(data,64U,100U)==HAL_SPI_ERROR);
     test_done();

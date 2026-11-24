@@ -10,8 +10,6 @@
 #define STAR_MAZE_OFFSET_X   4U
 #define STAR_MAZE_OFFSET_Y   25U
 
-/* Tile IDs: 0=floor, 1=wall, 2=start, 3=goal,
-   4=collectible star, 5=trap. There are no heart items. */
 enum { TILE_FLOOR=0, TILE_WALL=1, TILE_START=2, TILE_GATE=3,
        TILE_STAR=4, TILE_TRAP=5 };
 

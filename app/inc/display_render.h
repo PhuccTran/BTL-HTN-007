@@ -4,7 +4,7 @@
 #include "app_ipc.h"
 #include "hal_st7735.h"
 
-/* Context chỉ do task_display sở hữu. Không truy cập context từ task khác. */
+/* Context chỉ được truy cập bởi task Display. */
 typedef struct {
     DisplayScene_t scene;
     DisplayUpdate_t painted;

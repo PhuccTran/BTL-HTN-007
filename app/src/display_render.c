@@ -78,10 +78,6 @@ static void prvIndexStars(DisplayRender_t *r)
         { r->star_rows[n]=(uint8_t)y; r->star_cols[n]=(uint8_t)x; ++n; } } }
 }
 
-/* Nền tại một pixel: tường trắng, đường đen, sao trắng, bẫy X,
- * cổng vuông đặc khi khóa và vuông rỗng khi mở. Chỉ tái hiện trạng thái GAME
- * gửi, không tự nhặt sao/trừ tim/mở cổng hay kiểm tra va chạm.
- */
 static uint16_t prvBackground(const DisplayRender_t *r,int x,int y)
 {
     static const uint8_t star[7]={0x08,0x08,0x7F,0x3E,0x1C,0x36,0x22};
@@ -225,7 +221,7 @@ hal_st7735_status_t task_display_render_apply(DisplayRender_t *r,const DisplayMs
     if (!task_display_render_validate(m)) { return HAL_ST7735_INVALID; }
     if (m->type==DISPLAY_MSG_SCENE)
     {
-        /* SCENE do một producer gửi FIFO. ID là token so khớp, hỗ trợ wrap. */
+
         r->scene=m->data.scene; r->scene_id=m->scene_id; r->have_scene=true;
         prvIndexStars(r);
         if (!r->overlay) { task_display_render_invalidate(r); }
@@ -249,7 +245,7 @@ hal_st7735_status_t task_display_render_apply(DisplayRender_t *r,const DisplayMs
         int x=r->painted.ball_x,y=r->painted.ball_y,radius=APP_DISPLAY_BALL_RADIUS;
         s=prvRegion(r,x-radius,y-radius,x+radius,y+radius);
         if (s==HAL_ST7735_OK && tiles_changed) { s=prvChangedTiles(r); }
-        /* Vẽ bi sau tile để sao/cổng vừa cập nhật không đè bi đang đứng yên. */
+        /* Vẽ bi sau tile để cập nhật sao/cổng không xóa bi đứng yên. */
         if (s==HAL_ST7735_OK) { s=prvBall(&r->scene.hud); }
     }
     if (s==HAL_ST7735_OK && r->painted.collected_stars!=r->scene.hud.collected_stars) { s=prvHeader(&r->scene); }

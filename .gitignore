@@ -1,4 +1,3 @@
-# Generated test and compiler output
 build/
 Debug/
 Release/
@@ -10,7 +9,6 @@ Release/
 *.map
 *.lst
 *.su
-# Local tools and editor settings
 .venv/
 venv/
 __pycache__/

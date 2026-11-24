@@ -9,7 +9,7 @@ static bool s_faulted;
 #if BSP_DISPLAY_USE_DMA
 static SemaphoreHandle_t s_done;
 static volatile uint32_t s_dma_error;
-/* DMA chỉ đọc buffer tĩnh này. Timeout không để DMA đọc stack đã hết lifetime. */
+/* Buffer tĩnh giữ dữ liệu hợp lệ nếu DMA còn chạy sau timeout. */
 static uint8_t s_dma_buffer[256];
 #endif
 
@@ -25,8 +25,7 @@ static hal_spi_status_t prvWait(uint32_t mask, bool set, TickType_t start, TickT
     while (((BSP_DISPLAY_SPI->SR & mask) != 0U) != set)
     {
         if (prvLeft(start, budget) == 0U) { return HAL_SPI_TIMEOUT; }
-        /* Byte SPI chỉ cần khoảng microsecond. Không ngủ 1 ms cho từng byte;
-         * chỉ nhường CPU khi cờ thực sự kẹt qua nhiều lần đọc. */
+        /* Chỉ nhường CPU khi cờ kẹt; tránh delay theo từng byte SPI. */
         if (++spins>=64U) { spins=0U; vTaskDelay(1U); }
     }
     return HAL_SPI_OK;
@@ -40,7 +39,7 @@ BaseType_t hal_spi_display_prepare(void)
     if (s_done == NULL) { return pdFAIL; }
     BSP_DISPLAY_DMA_ENABLE();
     (void)RCC->AHB1ENR;
-    /* Dành riêng Stream3. Không chiếm controller DMA2 của ngoại vi khác. */
+
     if ((BSP_DISPLAY_DMA_STREAM->CR & DMA_SxCR_EN) != 0U)
     {
         vSemaphoreDelete(s_done);
@@ -55,7 +54,7 @@ BaseType_t hal_spi_display_prepare(void)
     BSP_DISPLAY_SPI_ENABLE();
     (void)RCC->APB2ENR;
     BSP_DISPLAY_SPI_RESET();
-    /* 1-line TX: không sinh RX overrun, CPOL=CPHA=0, 8 bit, software NSS. */
+
     BSP_DISPLAY_SPI->CR1 = SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI |
                           SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | BSP_DISPLAY_SPI_BR;
     BSP_DISPLAY_SPI->CR2 = 0U;
@@ -67,18 +66,18 @@ BaseType_t hal_spi_display_prepare(void)
 #if BSP_DISPLAY_USE_DMA
 static bool prvStopDma(void)
 {
-    /* Chặn IRQ trước cleanup để completion cũ không đánh thức lần truyền mới. */
+    /* Chặn completion cũ đánh thức lần truyền tiếp theo. */
     NVIC_DisableIRQ(BSP_DISPLAY_DMA_IRQ);
     BSP_DISPLAY_SPI->CR2 &= ~SPI_CR2_TXDMAEN;
     BSP_DISPLAY_DMA_STREAM->CR &= ~DMA_SxCR_EN;
-    /* Chờ phần cứng bằng số vòng hữu hạn, kể cả khi tick không tiến. */
+    /* Giới hạn vòng chờ ngay cả khi tick không tiến. */
     uint32_t guard = 100000U;
     while ((BSP_DISPLAY_DMA_STREAM->CR & DMA_SxCR_EN) != 0U && guard != 0U) { --guard; }
     bool stopped = (BSP_DISPLAY_DMA_STREAM->CR & DMA_SxCR_EN) == 0U;
     BSP_DISPLAY_DMA->LIFCR = BSP_DISPLAY_DMA_CLEAR;
     NVIC_ClearPendingIRQ(BSP_DISPLAY_DMA_IRQ);
     (void)xSemaphoreTake(s_done, 0U);
-    if (!stopped) { s_faulted = true; } /* Không bao giờ ghi lại DMA buffer lúc này. */
+    if (!stopped) { s_faulted = true; } /* Không tái sử dụng buffer khi DMA chưa dừng. */
     else { NVIC_EnableIRQ(BSP_DISPLAY_DMA_IRQ); }
     return stopped;
 }
@@ -91,7 +90,7 @@ void BSP_DISPLAY_DMA_HANDLER(void)
         BaseType_t higher_woken = pdFALSE;
         s_dma_error = flags & BSP_DISPLAY_DMA_ERRORS;
         BSP_DISPLAY_DMA->LIFCR = BSP_DISPLAY_DMA_CLEAR;
-        /* ISR không chờ SPI BSY và không gọi API task thường. */
+
         (void)xSemaphoreGiveFromISR(s_done, &higher_woken);
         portYIELD_FROM_ISR(higher_woken);
     }
@@ -142,12 +141,12 @@ hal_spi_status_t hal_spi_display_write(const uint8_t *data, size_t length, TickT
         *(__IO uint8_t *)&BSP_DISPLAY_SPI->DR = *data++;
         --length;
     }
-    /* DMA TC chỉ báo hết buffer, phải đợi bit cuối ra dây trước khi đổi DC/CS. */
+    /* DMA TC chưa đảm bảo bit cuối ra dây; chờ TXE/BSY trước khi đổi DC/CS. */
     if (result == HAL_SPI_OK) { result = prvWait(SPI_SR_TXE, true, start, timeout); }
     if (result == HAL_SPI_OK) { result = prvWait(SPI_SR_BSY, false, start, timeout); }
     if (result != HAL_SPI_OK)
     {
-        /* Bỏ transfer lỗi, trả bus về mode đã biết; driver sẽ yêu cầu redraw. */
+
         BSP_DISPLAY_SPI_RESET();
         BSP_DISPLAY_SPI->CR1 = SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI |
                               SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | BSP_DISPLAY_SPI_BR | SPI_CR1_SPE;

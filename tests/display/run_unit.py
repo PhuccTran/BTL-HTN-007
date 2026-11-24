@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Không cần compiler host: build ARM rồi chạy với Python package unicorn.
-python3 -m pip install unicorn
-python3 tests/display/run_unit.py
-Không giả lập timing điện, DMA hay scheduler FreeRTOS thật.
-"""
+
 from pathlib import Path
 import json, struct, subprocess
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_THUMB, UC_HOOK_CODE
@@ -42,7 +38,7 @@ def u32(name): return struct.unpack('<I',uc.mem_read(symbols[name],4))[0]
 if u32('test_failure'): raise AssertionError(f'unit_display.c:{u32("test_failure")}')
 result={'checks':u32('test_checks'),'status':'PASS','target':'ARM Thumb under Unicorn; RTOS/SPI/GPIO mocked'}
 (out/'result.json').write_text(json.dumps(result,indent=2)+'\n')
-# PPM chuẩn, không cần thư viện ảnh để xuất ảnh từ kết quả C.
+
 raw=bytes(uc.mem_read(symbols['test_snapshots'],8*128*160*2))
 for i,name in enumerate(['scene','notice','resume','level-1','level-2','level-3','level-4','level-5']):
     pixels=struct.unpack_from('<20480H',raw,i*40960)

@@ -1,6 +1,5 @@
-/* Chạy code ARM thật của driver/renderer/task API trên Unicorn.
- * Chỉ RTOS/SPI/GPIO được thay bằng mock; framebuffer dưới đây chỉ ở test.
- */
+
+
 #include "hal_st7735.h"
 #include "hal_spi.h"
 #include "hal_gpio.h"
@@ -131,7 +130,7 @@ void test_entry(void)
     CHECK(s_pixels_written==128U*160U);
     CHECK(test_frame[159][127]==HAL_ST7735_WHITE);
     CHECK(hal_st7735_draw_pixel(127,159,0x1234U)==HAL_ST7735_OK);
-    CHECK(test_frame[159][127]==0x1234U); /* Kiểm tra thứ tự byte thực tế. */
+    CHECK(test_frame[159][127]==0x1234U);
     uint32_t before=s_pixels_written;
     CHECK(hal_st7735_fill_rect(-3,-2,5,4,HAL_ST7735_BLACK)==HAL_ST7735_OK);
     CHECK(s_pixels_written-before==4U && test_frame[1][1]==HAL_ST7735_BLACK);
@@ -148,7 +147,7 @@ void test_entry(void)
     s_fail_next=true; CHECK(hal_st7735_fill_rect(0,0,5,5,0)==HAL_ST7735_TIMEOUT);
     CHECK(!s_mutex_held && !s_selected);
     CHECK(hal_st7735_fill_rect(0,0,128,160,65535)==HAL_ST7735_OK);
-    s_tick=UINT32_MAX-100U; CHECK(hal_st7735_init()==HAL_ST7735_OK); /* Tick wrap. */
+    s_tick=UINT32_MAX-100U; CHECK(hal_st7735_init()==HAL_ST7735_OK);
     test_ipsr=1; CHECK(hal_st7735_draw_pixel(0,0,0)==HAL_ST7735_NOT_READY); test_ipsr=0;
     CHECK(hal_st7735_set_backlight(false)==HAL_ST7735_UNSUPPORTED);
 
@@ -157,7 +156,7 @@ void test_entry(void)
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     memcpy(test_snapshots[0],test_frame,sizeof(test_frame));
     memcpy(s_saved,test_frame,sizeof(test_frame));
-    /* Nền đen, tường trắng, tâm cổng khóa trắng. */
+
     CHECK(test_frame[25][4]==65535U && test_frame[65][25]==0U);
     CHECK(test_frame[129][108]==65535U);
     m.type=DISPLAY_MSG_UPDATE;
@@ -167,33 +166,33 @@ void test_entry(void)
     before=s_pixels_written;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     CHECK(s_pixels_written-before<150U);
-    /* Phục hồi sao đã bị bi che theo ảnh nền trước đó, không dùng cùng thuật toán để tính expected. */
+
     for(unsigned y=32;y<=38;++y) { for(unsigned x=32;x<=38;++x)
       { CHECK(test_frame[y+25][x+4]==s_saved[y+25][x+4]); } }
     for(unsigned y=0;y<160;++y) { for(unsigned x=0;x<128;++x)
       { if(y<25U||y>=145U||x<4U||x>=124U) { CHECK(test_frame[y][x]==s_saved[y][x]); } } }
     before=s_calls; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK && s_calls==before);
-    /* Không cho producer mở cổng trước khi đủ sao. */
+
     m.data.update.gate_open=1;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_INVALID && s_calls==before);
     m.data.update.gate_open=0;
     m.scene_id=999; m.data.update.ball_x=15;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK && r.scene.hud.ball_x==65);
     m.scene_id=1;
-    /* Thu sao ngay dưới bi đứng yên: redraw tile xong vẫn phải vẽ bi trên cùng. */
+
     m.data.update.ball_x=35; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     m.data.update.collected_star_mask=1; m.data.update.collected_stars=1;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     CHECK(test_frame[57][39]==65535U && test_frame[60][39]==0U);
     m.data.update.ball_x=45; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     for(unsigned y=30;y<40;++y) { for(unsigned x=30;x<40;++x) { CHECK(test_frame[y+25][x+4]==0U); } }
-    /* X của bẫy được phục hồi khi bi đi qua. */
+
     memcpy(s_saved,test_frame,sizeof(test_frame));
     m.data.update.ball_x=55; m.data.update.ball_y=65; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     m.data.update.ball_x=85; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     for(unsigned y=62;y<=68;++y) { for(unsigned x=52;x<=58;++x)
       { CHECK(test_frame[y+25][x+4]==s_saved[y+25][x+4]); } }
-    /* Bẫy chỉ là trạng thái vẽ: respawn giữ sao, HP do producer gửi. */
+
     m.type=DISPLAY_MSG_NOTICE; m.data.notice=DISPLAY_NOTICE_TRAP;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     memcpy(s_saved,test_frame,sizeof(test_frame));
@@ -211,7 +210,7 @@ void test_entry(void)
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     memcpy(test_snapshots[1],test_frame,sizeof(test_frame));
     memcpy(s_saved,test_frame,sizeof(test_frame));
-    /* Đổi SCENE khi notice đang hiện không được ghi đè; phải chờ RESUME. */
+
     m=prvScene(); m.scene_id=2; m.data.scene.level=5;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     m.type=DISPLAY_MSG_UPDATE; m.data.update=(DisplayUpdate_t){.ball_x=55,.ball_y=55,.lives=1};
@@ -240,7 +239,7 @@ void test_entry(void)
     m.scene_id=r.scene_id;
     m.data.notice=DISPLAY_NOTICE_GAME_OVER;
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK && r.overlay);
-    /* Biên tối đa 16 sao: không shift 16-bit sai hoặc tràn bảng chỉ số sao. */
+
     m=prvScene(); m.scene_id=20U;
     m.data.scene.tiles[3][3]=DISPLAY_TILE_FLOOR; m.data.scene.tiles[4][6]=DISPLAY_TILE_FLOOR;
     for(unsigned n=0U;n<16U;++n) { m.data.scene.tiles[2U+n/10U][1U+n%10U]=DISPLAY_TILE_STAR; }
@@ -249,7 +248,7 @@ void test_entry(void)
     CHECK(task_display_render_validate(&m));
     CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
     m.type=DISPLAY_MSG_RESUME; CHECK(task_display_render_apply(&r,&m)==HAL_ST7735_OK);
-    /* Nhập đúng từng byte của đủ 5 bản đồ từ ZIP, chụp ảnh để kiểm tra ngoại hình. */
+
     for(unsigned level=1;level<=5;++level)
     {
         memset(&m,0,sizeof(m)); m.type=DISPLAY_MSG_SCENE; m.scene_id=100+level;
@@ -264,7 +263,6 @@ void test_entry(void)
     for(unsigned y=0;y<160;++y) { for(unsigned x=0;x<128;++x)
       { CHECK(test_frame[y][x]==0U||test_frame[y][x]==65535U); } }
 
-    /* Startup preflight, API Queue hữu hạn và copy-by-value. */
     s_scheduler=taskSCHEDULER_NOT_STARTED; s_heap=100;
     CHECK(task_display_create()==pdFAIL); s_heap=0; s_lazy_heap=true;
     CHECK(task_display_create()==pdPASS && task_display_create()==pdPASS);

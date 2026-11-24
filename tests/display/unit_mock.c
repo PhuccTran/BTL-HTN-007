@@ -1,6 +1,5 @@
-/* Thực thi task mock thật với RTOS giả; validate và renderer vẫn dùng code App
- * thật. Test riêng ảnh pixel nằm trong unit_display.c, không nhân đôi ở đây.
- */
+
+
 #include "mock_display.h"
 #include "task_display.h"
 #include "display_render.h"
@@ -34,7 +33,7 @@ void task_display_get_stats(DisplayStats_t *stats) { memset(stats,0,sizeof(*stat
 BaseType_t task_display_post(const DisplayMsg_t *m,TickType_t timeout)
 {
     CHECK(timeout<=100U);
-    if ((++s_tries%37U)==0U) { return pdFAIL; } /* Ép retry một lần, không mất sự kiện. */
+    if ((++s_tries%37U)==0U) { return pdFAIL; }
     CHECK(task_display_render_validate(m));
     if (m->type==DISPLAY_MSG_SCENE)
     {
