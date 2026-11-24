@@ -1,0 +1,252 @@
+[
+  {
+    "man": 1,
+    "ten": "LAM_QUEN",
+    "so_sao": 2,
+    "so_bay": 0,
+    "so_o_duong_di_an_het_sao_den_dich": 18,
+    "so_lan_re_toi_thieu_trong_duong_ngan_nhat": 5,
+    "so_sao_co_bay_ke_ben": 0,
+    "vi_tri_sao_hang_cot_0_based": [
+      [
+        2,
+        2
+      ],
+      [
+        6,
+        8
+      ]
+    ],
+    "vi_tri_bay_hang_cot_0_based": [],
+    "thu_tu_cham_sao_tren_duong_kiem_tra": [
+      [
+        2,
+        2
+      ],
+      [
+        6,
+        8
+      ]
+    ]
+  },
+  {
+    "man": 2,
+    "ten": "SAN_SAO",
+    "so_sao": 3,
+    "so_bay": 1,
+    "so_o_duong_di_an_het_sao_den_dich": 24,
+    "so_lan_re_toi_thieu_trong_duong_ngan_nhat": 10,
+    "so_sao_co_bay_ke_ben": 0,
+    "vi_tri_sao_hang_cot_0_based": [
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        8
+      ],
+      [
+        8,
+        5
+      ]
+    ],
+    "vi_tri_bay_hang_cot_0_based": [
+      [
+        6,
+        8
+      ]
+    ],
+    "thu_tu_cham_sao_tren_duong_kiem_tra": [
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        8
+      ],
+      [
+        8,
+        5
+      ]
+    ]
+  },
+  {
+    "man": 3,
+    "ten": "NE_BAY",
+    "so_sao": 3,
+    "so_bay": 2,
+    "so_o_duong_di_an_het_sao_den_dich": 38,
+    "so_lan_re_toi_thieu_trong_duong_ngan_nhat": 11,
+    "so_sao_co_bay_ke_ben": 3,
+    "vi_tri_sao_hang_cot_0_based": [
+      [
+        1,
+        7
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        1,
+        9
+      ]
+    ],
+    "vi_tri_bay_hang_cot_0_based": [
+      [
+        1,
+        8
+      ],
+      [
+        6,
+        7
+      ]
+    ],
+    "thu_tu_cham_sao_tren_duong_kiem_tra": [
+      [
+        1,
+        7
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        7,
+        7
+      ]
+    ]
+  },
+  {
+    "man": 4,
+    "ten": "NGO_CUT",
+    "so_sao": 4,
+    "so_bay": 3,
+    "so_o_duong_di_an_het_sao_den_dich": 44,
+    "so_lan_re_toi_thieu_trong_duong_ngan_nhat": 15,
+    "so_sao_co_bay_ke_ben": 3,
+    "vi_tri_sao_hang_cot_0_based": [
+      [
+        1,
+        10
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        5,
+        9
+      ]
+    ],
+    "vi_tri_bay_hang_cot_0_based": [
+      [
+        2,
+        10
+      ],
+      [
+        6,
+        1
+      ],
+      [
+        6,
+        4
+      ]
+    ],
+    "thu_tu_cham_sao_tren_duong_kiem_tra": [
+      [
+        7,
+        1
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        1,
+        10
+      ],
+      [
+        5,
+        9
+      ]
+    ]
+  },
+  {
+    "man": 5,
+    "ten": "THU_THACH",
+    "so_sao": 4,
+    "so_bay": 5,
+    "so_o_duong_di_an_het_sao_den_dich": 50,
+    "so_lan_re_toi_thieu_trong_duong_ngan_nhat": 22,
+    "so_sao_co_bay_ke_ben": 4,
+    "vi_tri_sao_hang_cot_0_based": [
+      [
+        1,
+        3
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "vi_tri_bay_hang_cot_0_based": [
+      [
+        1,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        10,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        3,
+        10
+      ]
+    ],
+    "thu_tu_cham_sao_tren_duong_kiem_tra": [
+      [
+        1,
+        3
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        4,
+        5
+      ]
+    ]
+  }
+]
