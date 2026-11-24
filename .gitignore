@@ -1,0 +1,22 @@
+# Generated test and compiler output
+build/
+Debug/
+Release/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+# Local tools and editor settings
+.venv/
+venv/
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+*.swp
+*.tmp
+*~
