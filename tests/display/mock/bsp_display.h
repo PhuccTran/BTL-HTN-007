@@ -1,0 +1,9 @@
+#ifndef TEST_BSP_DISPLAY_H
+#define TEST_BSP_DISPLAY_H
+#include "stm32f4xx.h"
+#define BSP_DISPLAY_X_OFFSET 0U
+#define BSP_DISPLAY_Y_OFFSET 0U
+#define BSP_DISPLAY_MADCTL 0xC8U
+#define BSP_DISPLAY_INVERT 0
+#define BSP_DISPLAY_PANEL_PROFILE 1
+#endif
