@@ -1,0 +1,16 @@
+{
+  "name": "FreeRTOS-Kernel",
+  "version": "V11.3.3",
+  "upstream": "https://github.com/FreeRTOS/FreeRTOS-Kernel",
+  "release": "https://github.com/FreeRTOS/FreeRTOS-Kernel/releases/tag/V11.3.3",
+  "archive_url": "https://codeload.github.com/FreeRTOS/FreeRTOS-Kernel/zip/refs/tags/V11.3.3",
+  "archive_sha256": "604b689104c923df74a29215e537f95b4fab90aaeac6482b48e5527da2dc776d",
+  "license": "MIT",
+  "excluded_repository_metadata": [
+    ".github/",
+    ".gitmodules",
+    ".git-blame-ignore-revs"
+  ],
+  "upstream_file_content_modified": false,
+  "third_party_submodules_included": false
+}

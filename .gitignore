@@ -1,0 +1,44 @@
+# Build directories
+build/
+Debug/
+Release/
+out/
+Objects/
+Listings/
+
+# Compiler and linker output
+*.o
+*.obj
+*.d
+*.a
+*.lib
+*.elf
+*.axf
+*.hex
+*.bin
+*.map
+*.lst
+*.su
+*.gcda
+*.gcno
+
+# Local IDE settings
+project.local.mk
+__pycache__/
+*.pyc
+.vscode/
+.idea/
+*.uvguix.*
+*.uvoptx
+*.ewd
+*.dep
+*.launch
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db

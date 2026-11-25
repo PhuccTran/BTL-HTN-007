@@ -1,0 +1,16 @@
+{
+  "name": "STM32F10x Standard Peripheral Library",
+  "version": "V3.5.0",
+  "publisher": "STMicroelectronics",
+  "official_product": "https://www.st.com/en/embedded-software/stsw-stm32054.html",
+  "download_source": "community mirror of ST release; direct ST download timed out",
+  "mirror_repository": "https://github.com/wajatimur/stm32f10x-stdperiph-lib",
+  "mirror_commit": "afa743577f2784e95be2d5003380fdb84a702519",
+  "archive_sha256": "0c9d803403208852b582c6d9aa5df63feb8191fffa016ce9e71fbd08db7dfaf0",
+  "retrieved_date": "2026-11-13",
+  "included": "Libraries/ plus upstream README, release notes and HTML resources",
+  "adaptations": [
+    "Copied CoreSupport/core_cm3.h.old to core_cm3.h without changing bytes; mirror has no active core_cm3.h."
+  ],
+  "license_notes": "Retained all upstream source notices and CMSIS/License.doc. See vendor README.md."
+}

@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/STMicroelectronics/cmsis-device-f1",
+  "retrieved_date": "2026-11-10",
+  "startup_url": "https://raw.githubusercontent.com/STMicroelectronics/cmsis-device-f1/master/Source/Templates/gcc/startup_stm32f103xb.s",
+  "startup_sha256": "a9a5fc7ed5ff617527dd98b3092830f4d17ed4bf57c99eac2c53bdb514ce138c",
+  "license": "Apache-2.0",
+  "startup_modified": false
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "file": "app/inc/app_bmi160.h",
+    "sha256": "a68e3d727263db3ff7feae629c56181f91e5af9251a6fb0d6036169634fc7159"
+  },
+  {
+    "file": "app/inc/app_led.h",
+    "sha256": "9e904836f2dca43623115601cbeaab2082a5857f092e8047f57dae1f1dd20550"
+  },
+  {
+    "file": "app/inc/app_uart.h",
+    "sha256": "6d49482b03cb9aaa02a6eb1530016be5b91946158e639ef22ebaf85f2066690d"
+  },
+  {
+    "file": "app/inc/bmi160_service.h",
+    "sha256": "c06b4a85af23009148562df9b3e3e53ef34b1bba5c1753384c407b6744428658"
+  },
+  {
+    "file": "app/inc/uart_service.h",
+    "sha256": "85bec9ed2acd3982fa625382628b681427856671c1a61e7599c411d53bed9ebb"
+  },
+  {
+    "file": "app/src/app_bmi160.c",
+    "sha256": "06ac31034a73e030273699f1f48e3a428d3f4a0e5cff1fe2d6b25f4933b9c9de"
+  },
+  {
+    "file": "app/src/app_led.c",
+    "sha256": "3587c07b3753e4c54e98a8c1a17a8fd97f668aa7fff02dd7aef97434265d7bd6"
+  },
+  {
+    "file": "app/src/app_uart.c",
+    "sha256": "26a3fee207c4c63c7dbed8f06a1bc368394c7c899bb2e055a43b25f93e65c49c"
+  },
+  {
+    "file": "app/src/bmi160_service.c",
+    "sha256": "9382f49030db35e0be1b1b1a61bd7c7a3c81d059e81a08f4168120376ef7ffe0"
+  },
+  {
+    "file": "app/src/uart_service.c",
+    "sha256": "b1ce883f119d166ef1ab67a587cf6b15d5c627e8bedb052f739e9a7e917eb3d3"
+  },
+  {
+    "file": "hal/inc/hal_i2c.h",
+    "sha256": "68cf97e8e9af7ec2637dd25d22efa39dd00966f6222560e14620994571bf5490"
+  },
+  {
+    "file": "hal/inc/hal_uart.h",
+    "sha256": "e1a5239f3716bad82efb625f7323d38d3a08bd8ac8d0720a4342ec357a932661"
+  },
+  {
+    "file": "hal/src/hal_i2c.c",
+    "sha256": "e19a16ef37426de19bf8029f450efce8ea6c9cde0a970506a3485eba47c55734"
+  },
+  {
+    "file": "hal/src/hal_uart.c",
+    "sha256": "a9e107e4042777a6b14dd6bc0da7bdac715c599a2315e8144fe278c19303fa03"
+  },
+  {
+    "file": "main.c",
+    "sha256": "215f9eb8538169565112ed4cf6e1c83f7e69c1c26f93fa0326c12d2e86ca1bd1"
+  }
+]
