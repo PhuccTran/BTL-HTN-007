@@ -1,121 +1,91 @@
-# GNU Make >= 4.0. Recipe commands work with native Windows or POSIX shells.
+# Build the complete layered C project with GNU Make.
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-include project.mk
--include project.local.mk
+CROSS_COMPILE ?= arm-none-eabi-
+CC := $(CROSS_COMPILE)gcc
+OBJCOPY := $(CROSS_COMPILE)objcopy
+SIZE := $(CROSS_COMPILE)size
+STFLASH ?= st-flash
+override BUILD_DIR := build/game
+ELF := $(BUILD_DIR)/star-maze.elf
+BIN := $(BUILD_DIR)/star-maze.bin
 
+KERNEL := third_party/FreeRTOS-Kernel
+PORT := $(KERNEL)/portable/GCC/ARM_CM4F
+INCLUDES := . bsp/inc hal/inc middle/inc app/inc \
+            third_party/CMSIS-F411/Core third_party/CMSIS-F411/Device \
+            $(KERNEL)/include $(PORT)
+ARCH := -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CPPFLAGS := -DSTM32F411xE -DBSP_DISPLAY_USE_DMA=0 $(addprefix -I,$(INCLUDES))
+CFLAGS := $(ARCH) -Og -g3 -std=c11 -Wall -Wextra -Werror \
+          -ffunction-sections -fdata-sections -fno-common -fstack-usage
+LDFLAGS := $(ARCH) -Tplatform/stm32f411ce/stm32f411ce.ld -nostartfiles \
+           --specs=nano.specs --specs=nosys.specs -Wl,--gc-sections,-Map=$(BUILD_DIR)/star-maze.map
+
+C_SOURCES := middle/src/sensor_processing.c middle/src/button_logic.c middle/src/game_core.c middle/src/game_display.c app/src/task_game.c \
+ app/src/task_button.c app/src/task_sensor_game.c middle/src/app_game_ipc.c \
+ hal/src/hal_button.c main.c \
+ app/src/task_display.c middle/src/display_render.c middle/src/star_maze_levels.c \
+ hal/src/hal_gpio.c hal/src/hal_spi.c hal/src/hal_st7735.c \
+ hal/src/hal_i2c.c \
+ hal/src/bmi160_service.c hal/src/hal_sensor.c \
+ platform/stm32f411ce/system.c platform/stm32f411ce/rtos_hooks.c \
+ $(addprefix $(KERNEL)/,tasks.c queue.c list.c timers.c event_groups.c stream_buffer.c) \
+ $(PORT)/port.c $(KERNEL)/portable/MemMang/heap_4.c
+ASM_SOURCES := third_party/CMSIS-F411/startup_stm32f411xe.s
+OBJECTS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(C_SOURCES) $(ASM_SOURCES)))
+
+# Adapt supplied code at compile time; do not edit the teammates' files.
+$(BUILD_DIR)/middle/src/display_render.c.o: CPPFLAGS += \
+ -Dtask_display_render_apply=game_ui_base_apply \
+ -Dtask_display_render_refresh=game_ui_base_refresh
 ifeq ($(OS),Windows_NT)
-PYTHON ?= python
+SHELL := cmd.exe
+.SHELLFLAGS := /c
+mkdir = if not exist "$(subst /,\,$(1))" mkdir "$(subst /,\,$(1))"
 else
-PYTHON ?= python3
+SHELL := /bin/sh
+mkdir = mkdir -p "$(1)"
 endif
 
-CC := $(TOOLCHAIN_PREFIX)gcc
-OBJCOPY := $(TOOLCHAIN_PREFIX)objcopy
-OBJDUMP := $(TOOLCHAIN_PREFIX)objdump
-SIZE := $(TOOLCHAIN_PREFIX)size
-GDB := $(TOOLCHAIN_PREFIX)gdb
-BUILD_DIR := build
-ELF := $(BUILD_DIR)/$(TARGET).elf
-HEX := $(BUILD_DIR)/$(TARGET).hex
-BIN := $(BUILD_DIR)/$(TARGET).bin
-MAP := $(BUILD_DIR)/$(TARGET).map
-LISTING := $(BUILD_DIR)/$(TARGET).lst
-HELPER := scripts/build_support.py
+.PHONY: all flash reset clean help
+all: $(ELF) $(BIN)
 
-KERNEL_DIR := middlewares/FreeRTOS-Kernel
-PORT_DIR := $(KERNEL_DIR)/portable/$(FREERTOS_PORT)
-rwildcard = $(foreach p,$(wildcard $(1)/*),$(call rwildcard,$(p),$(2)) $(filter $(subst *,%,$(2)),$(p)))
-KERNEL_SOURCES := $(addprefix $(KERNEL_DIR)/,tasks.c queue.c list.c timers.c event_groups.c stream_buffer.c)
-C_SOURCES := $(filter-out $(EXCLUDE_SOURCES),$(sort main.c $(foreach d,$(SOURCE_DIRS),$(call rwildcard,$(d),*.c)) $(KERNEL_SOURCES) $(wildcard $(PORT_DIR)/*.c) $(KERNEL_DIR)/portable/MemMang/heap_$(FREERTOS_HEAP).c $(EXTRA_C_SOURCES)))
-ASM_SOURCES := $(filter-out $(EXCLUDE_SOURCES),$(sort $(STARTUP_SOURCES) $(wildcard $(PORT_DIR)/*.s $(PORT_DIR)/*.S) $(EXTRA_ASM_SOURCES)))
-ALL_INCLUDES := $(sort $(INCLUDE_DIRS) $(EXTRA_INCLUDE_DIRS) $(KERNEL_DIR)/include $(PORT_DIR))
-OBJECTS := $(addprefix $(BUILD_DIR)/,$(addsuffix .o,$(C_SOURCES) $(ASM_SOURCES)))
-DEPS := $(OBJECTS:.o=.d)
-ARCH_FLAGS := -mcpu=$(CPU) -mthumb -mfloat-abi=$(FLOAT_ABI) $(if $(strip $(FPU)),-mfpu=$(FPU))
-CPPFLAGS := $(addprefix -D,$(DEFINES)) $(addprefix -I,$(ALL_INCLUDES))
-CFLAGS := $(ARCH_FLAGS) $(OPT) -g3 -std=gnu11 -Wall -Wextra -ffunction-sections -fdata-sections -fno-common $(EXTRA_CFLAGS)
-ASFLAGS := $(ARCH_FLAGS) -g3 -x assembler-with-cpp
-LDFLAGS := $(ARCH_FLAGS) -T$(LINKER_SCRIPT) -nostartfiles --specs=nano.specs --specs=nosys.specs -Wl,--gc-sections,-Map=$(MAP),--cref $(EXTRA_LDFLAGS)
-LDLIBS := -Wl,--start-group -lc -lm -lgcc -Wl,--end-group
-CONFIG_FILES := Makefile project.mk $(wildcard project.local.mk) FreeRTOSConfig.h $(HELPER)
-CONFIG_STAMP := $(BUILD_DIR)/.build-config
-.PHONY: all build help check check-flash sources print-config clean rebuild flash reset debug-server debug size hex bin disasm FORCE
-all: $(ELF) $(HEX) $(BIN)
-build: all
-hex: $(HEX)
-bin: $(BIN)
+$(BUILD_DIR)/%.c.o: %.c Makefile
+	@$(call mkdir,$(@D))
+	"$(CC)" $(CPPFLAGS) $(CFLAGS) -MMD -MP -c "$<" -o "$@"
 
-help:
-	@$(PYTHON) $(HELPER) help
+$(BUILD_DIR)/%.s.o: %.s Makefile
+	@$(call mkdir,$(@D))
+	"$(CC)" $(CPPFLAGS) $(ARCH) -g3 -x assembler-with-cpp -MMD -MP -c "$<" -o "$@"
 
-check:
-	@$(PYTHON) $(HELPER) check --tool "$(CC)" --tool "$(OBJCOPY)" --tool "$(SIZE)" --required "$(LINKER_SCRIPT)" --required "FreeRTOSConfig.h" --required "$(PORT_DIR)/portmacro.h" $(foreach f,$(C_SOURCES) $(ASM_SOURCES),--required "$(f)")
-
-# Keep the stamp's mtime unchanged when the source list and flags are unchanged.
-# This also forces relinking when a source file is removed from the project.
-$(CONFIG_STAMP): FORCE $(CONFIG_FILES) | check
-	@$(PYTHON) $(HELPER) stamp --output "$@" --entry "CC=$(CC)" --entry "CPPFLAGS=$(CPPFLAGS)" --entry "CFLAGS=$(CFLAGS)" --entry "ASFLAGS=$(ASFLAGS)" --entry "LDFLAGS=$(LDFLAGS) $(LDLIBS)" --entry "SOURCES=$(C_SOURCES) $(ASM_SOURCES)"
-
-$(BUILD_DIR)/%.c.o: %.c $(CONFIG_FILES) $(CONFIG_STAMP) | check
-	@$(PYTHON) $(HELPER) mkdir --output "$(@D)"
-	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -MF "$(@:.o=.d)" -c "$<" -o "$@"
-
-$(BUILD_DIR)/%.s.o: %.s $(CONFIG_FILES) $(CONFIG_STAMP) | check
-	@$(PYTHON) $(HELPER) mkdir --output "$(@D)"
-	$(CC) $(CPPFLAGS) $(ASFLAGS) -MMD -MP -MF "$(@:.o=.d)" -c "$<" -o "$@"
-
-$(BUILD_DIR)/%.S.o: %.S $(CONFIG_FILES) $(CONFIG_STAMP) | check
-	@$(PYTHON) $(HELPER) mkdir --output "$(@D)"
-	$(CC) $(CPPFLAGS) $(ASFLAGS) -MMD -MP -MF "$(@:.o=.d)" -c "$<" -o "$@"
-
-$(ELF): $(OBJECTS) $(LINKER_SCRIPT) $(CONFIG_FILES) $(CONFIG_STAMP) | check
-	$(CC) $(OBJECTS) $(LDFLAGS) $(LDLIBS) -o "$@"
-	$(SIZE) "$@"
-
-$(HEX): $(ELF)
-	$(OBJCOPY) -O ihex "$<" "$@"
+$(ELF): $(OBJECTS) platform/stm32f411ce/stm32f411ce.ld
+	"$(CC)" $(OBJECTS) $(LDFLAGS) -Wl,--start-group -lc -lm -lgcc -Wl,--end-group -o "$@"
+	"$(SIZE)" "$@"
 
 $(BIN): $(ELF)
-	$(OBJCOPY) -O binary "$<" "$@"
+	"$(OBJCOPY)" -O binary "$<" "$@"
 
-size: $(ELF)
-	$(SIZE) "$<"
+flash: $(BIN)
+	"$(STFLASH)" --reset write "$(BIN)" 0x08000000
 
-disasm: $(ELF)
-	$(OBJDUMP) -h -S "$<" > "$(LISTING)"
+reset:
+	"$(STFLASH)" reset
 
-check-flash:
-	@$(PYTHON) $(HELPER) check --tool "$(STFLASH)"
-
-flash: $(BIN) check-flash
-	$(STFLASH) --reset write "$<" $(FLASH_ADDR)
-
-reset: check-flash
-	$(STFLASH) reset
-
-debug-server:
-	@$(PYTHON) $(HELPER) check --tool "$(STUTIL)"
-	$(STUTIL) -p $(GDB_PORT)
-
-debug: $(ELF)
-	@$(PYTHON) $(HELPER) check --tool "$(GDB)"
-	$(GDB) "$(ELF)" -ex "target extended-remote $(GDB_HOST):$(GDB_PORT)" -ex "monitor reset" -ex "tbreak main"
-
-sources:
-	@$(PYTHON) $(HELPER) show $(foreach f,$(C_SOURCES) $(ASM_SOURCES),--entry "$(f)")
-
-print-config:
-	@$(PYTHON) $(HELPER) show --entry "TARGET=$(TARGET)" --entry "CPU=$(CPU)" --entry "CC=$(CC)" --entry "FREERTOS_PORT=$(FREERTOS_PORT)" --entry "FREERTOS_HEAP=$(FREERTOS_HEAP)" --entry "LINKER_SCRIPT=$(LINKER_SCRIPT)" --entry "INCLUDES=$(ALL_INCLUDES)" --entry "STFLASH=$(STFLASH)" --entry "STUTIL=$(STUTIL)" --entry "FLASH_ADDR=$(FLASH_ADDR)"
-
+# Only generated output in the fixed project build/game directory.
 clean:
-	@$(PYTHON) $(HELPER) clean
+ifeq ($(OS),Windows_NT)
+	@if exist "build\game" rmdir /s /q "build\game"
+else
+	rm -rf -- build/game
+endif
 
-rebuild:
-	"$(MAKE)" clean
-	"$(MAKE)" all
+help:
+	@echo make - build the real BMI160 firmware
+	@echo make flash - build and flash using ST-Link
+	@echo make reset - reset the connected board
+	@echo make clean - remove generated firmware build output
 
-FORCE:
--include $(DEPS)
+-include $(OBJECTS:.o=.d)
