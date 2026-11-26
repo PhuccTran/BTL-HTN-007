@@ -26,10 +26,11 @@ LDFLAGS := $(ARCH) -Tplatform/stm32f411ce/stm32f411ce.ld -nostartfiles \
 
 C_SOURCES := middle/src/sensor_processing.c middle/src/button_logic.c middle/src/game_core.c middle/src/game_display.c app/src/task_game.c \
  app/src/task_button.c app/src/task_sensor_game.c middle/src/app_game_ipc.c \
+ app/src/task_telemetry.c middle/src/sys_monitor.c \
  hal/src/hal_button.c main.c \
  app/src/task_display.c middle/src/display_render.c middle/src/star_maze_levels.c \
  hal/src/hal_gpio.c hal/src/hal_spi.c hal/src/hal_st7735.c \
- hal/src/hal_sensor.c \
+ hal/src/hal_sensor.c hal/src/hal_uart.c \
  platform/stm32f411ce/system.c platform/stm32f411ce/rtos_hooks.c \
  $(addprefix $(KERNEL)/,tasks.c queue.c list.c timers.c event_groups.c stream_buffer.c) \
  $(PORT)/port.c $(KERNEL)/portable/MemMang/heap_4.c

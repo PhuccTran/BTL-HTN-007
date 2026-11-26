@@ -8,6 +8,7 @@
 #include "task_sensor_game.h"
 #include "task_game.h"
 #include "task_button.h"
+#include "task_telemetry.h"
 
 _Static_assert(pdMS_TO_TICKS(GAME_STEP_MS) > 0U, "Game period below tick");
 _Static_assert(pdMS_TO_TICKS(APP_BUTTON_PERIOD_MS) > 0U, "Button period below tick");
@@ -25,6 +26,7 @@ int main(void)
     configASSERT(task_sensor_game_create() == pdPASS);
     configASSERT(task_game_create() == pdPASS);
     configASSERT(task_button_create() == pdPASS);
+    configASSERT(task_telemetry_create() == pdPASS);
     g_game_heap_before_scheduler = xPortGetFreeHeapSize();
     /* Idle+timer stacks/TCBs, timer command queue, BMI mutex, and a margin.
      * The true runtime heap and stack watermarks still require board testing. */
