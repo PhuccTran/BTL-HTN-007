@@ -6,22 +6,7 @@
 #include "task.h"
 #include "semphr.h"
 
-/* Các thanh ghi quan trọng của cảm biến BMI160 */
-#define BMI160_REG_CHIP_ID          0x00U
-#define BMI160_REG_DATA_START       0x0CU /* 0x0C: GYR_X_L -> 0x17: ACC_Z_H (12 bytes) */
-#define BMI160_REG_STATUS           0x1BU
-#define BMI160_REG_ACC_CONF         0x40U
-#define BMI160_REG_ACC_RANGE        0x41U
-#define BMI160_REG_GYR_CONF         0x42U
-#define BMI160_REG_GYR_RANGE        0x43U
-#define BMI160_REG_CMD              0x7EU
 
-/* Các mã lệnh ghi vào thanh ghi CMD */
-#define BMI160_CMD_SOFT_RESET       0xB6U
-#define BMI160_CMD_ACC_MODE_NORMAL  0x11U
-#define BMI160_CMD_GYR_MODE_NORMAL  0x15U
-
-#define BMI160_MUTEX_TIMEOUT_MS     100UL
 
 static uint8_t s_device_addr = BMI160_I2C_ADDR_LOW;
 static SemaphoreHandle_t s_bmi160_mutex = NULL;
