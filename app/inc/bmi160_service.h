@@ -1,0 +1,43 @@
+#ifndef BMI160_SERVICE_H
+#define BMI160_SERVICE_H
+
+#include <stdint.h>
+#include "FreeRTOS.h"
+
+/* Layer 2: Dịch vụ cảm biến BMI160 - Quản lý cấu hình, giao tiếp và đọc raw data */
+
+#define BMI160_I2C_ADDR_LOW     0x68U
+#define BMI160_I2C_ADDR_HIGH    0x69U
+#define BMI160_CHIP_ID_VAL      0xD1U
+
+typedef enum
+{
+    BMI160_OK = 0,
+    BMI160_ERR_INIT,
+    BMI160_ERR_COMM,
+    BMI160_ERR_NOT_FOUND,
+    BMI160_ERR_TIMEOUT,
+    BMI160_ERR_MUTEX
+} bmi160_status_t;
+
+/* Cấu trúc lưu trữ dữ liệu thô (raw) từ 6 trục của BMI160 */
+typedef struct
+{
+    int16_t acc_x;
+    int16_t acc_y;
+    int16_t acc_z;
+    int16_t gyr_x;
+    int16_t gyr_y;
+    int16_t gyr_z;
+} bmi160_raw_data_t;
+
+/* Khởi tạo giao tiếp phần cứng I2C1, cấu hình BMI160 vào Normal Mode */
+bmi160_status_t bmi160_service_init(void);
+
+/* Đọc 6 trục dữ liệu thô (Accelerometer + Gyroscope) */
+bmi160_status_t bmi160_service_read_raw(bmi160_raw_data_t *raw_data);
+
+/* Lấy địa chỉ I2C đang hoạt động (0x68 hoặc 0x69) */
+uint8_t bmi160_service_get_i2c_addr(void);
+
+#endif /* BMI160_SERVICE_H */
