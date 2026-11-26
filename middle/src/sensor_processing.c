@@ -40,6 +40,11 @@ void sensor_processing_update(SensorProcessing_t *state, int16_t raw_x,
 
 #include "hal_sensor.h"
 
+bool sensor_game_configure(void)
+{
+    return hal_sensor_configure();
+}
+
 bool sensor_game_read(SensorProcessing_t *state, SensorSample_t *sample)
 {
     int16_t raw_x, raw_y;

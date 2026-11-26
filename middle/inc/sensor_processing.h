@@ -15,5 +15,6 @@ void sensor_processing_init(SensorProcessing_t *state);
 void sensor_processing_reset_window(SensorProcessing_t *state);
 void sensor_processing_update(SensorProcessing_t *state, int16_t raw_x,
                               int16_t raw_y, SensorSample_t *sample);
+bool sensor_game_configure(void);
 bool sensor_game_read(SensorProcessing_t *state, SensorSample_t *sample);
 #endif

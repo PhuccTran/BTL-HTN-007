@@ -3,7 +3,6 @@
 #include "game_config.h"
 #include "app_game_ipc.h"
 #include "sensor_processing.h"
-#include "hal_sensor.h"
 #include "stm32f4xx.h"
 #include <stdbool.h>
 #include <string.h>
@@ -31,7 +30,7 @@ static void prvSensorTask(void *argument)
     TickType_t wake = xTaskGetTickCount();
     for (;;) {
         if (!configured) {
-            configured = hal_sensor_configure();
+            configured = sensor_game_configure();
             taskENTER_CRITICAL(); s_stats.ready = configured ? 1U : 0U; taskEXIT_CRITICAL();
             if (!configured) {
                 prvPublish(0, 0, false);
