@@ -1,8 +1,9 @@
-/* Layer 1: Hardware Abstraction Layer - Cấu hình và giao tiếp I2C1 (SPL) */
+/* Layer 1: Hardware Abstraction Layer - Cấu hình và giao tiếp I2C1 (STM32F411) */
 #include "hal_i2c.h"
 #include "stm32f10x.h"
-
-#define I2C_TIMEOUT_CYCLES  50000UL
+#include "FreeRTOS.h"
+#include "task.h"
+#include <stddef.h>
 
 static uint32_t s_clock_speed = 100000UL;
 
@@ -96,190 +97,135 @@ hal_i2c_status_t hal_i2c_init(uint32_t clock_speed)
     return HAL_I2C_OK;
 }
 
-hal_i2c_status_t hal_i2c_write(uint8_t dev_addr, uint8_t reg_addr, const uint8_t *data, uint16_t len)
+/* F411 register-level I2C transfer: ACK must be disabled BEFORE clearing ADDR on 1-byte receive. */
+static int wait_flag(uint32_t flag)
 {
-    uint32_t timeout = I2C_TIMEOUT_CYCLES;
-    uint8_t raw_addr = (uint8_t)(dev_addr << 1);
-
-    /* 1. Chờ bus rảnh */
-    while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
+    for (uint32_t n = 0; n < 100000U; ++n)
     {
-        if (--timeout == 0U)
+        if ((I2C1->SR1 & (I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO)) != 0U)
         {
-            hal_i2c_bus_reset();
-            return HAL_I2C_TIMEOUT;
+            return 0;
+        }
+        if ((I2C1->SR1 & flag) == flag)
+        {
+            return 1;
         }
     }
+    return 0;
+}
 
-    /* 2. Gửi START bit */
-    I2C_GenerateSTART(I2C1, ENABLE);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT))
+static hal_i2c_status_t read_byte(uint8_t addr, uint8_t reg, uint8_t *data)
+{
+    hal_i2c_bus_reset();
+    uint32_t guard = 100000U;
+    while ((I2C1->SR2 & I2C_SR2_BUSY) != 0U && --guard != 0U) { }
+    if (guard == 0U)
     {
-        if (--timeout == 0U)
-        {
-            hal_i2c_bus_reset();
-            return HAL_I2C_TIMEOUT;
-        }
+        return HAL_I2C_TIMEOUT;
     }
 
-    /* 3. Gửi địa chỉ thiết bị + cờ ghi (Transmitter) */
-    I2C_Send7bitAddress(I2C1, raw_addr, I2C_Direction_Transmitter);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
-    {
-        if (--timeout == 0U)
-        {
-            I2C_GenerateSTOP(I2C1, ENABLE);
-            return HAL_I2C_TIMEOUT;
-        }
-    }
+    I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
+    I2C1->CR1 |= I2C_CR1_ACK;
+    I2C1->CR1 &= ~I2C_CR1_POS;
+    I2C1->CR1 |= I2C_CR1_START;
+    if (!wait_flag(I2C_SR1_SB)) { goto fail; }
 
-    /* 4. Gửi địa chỉ thanh ghi */
-    I2C_SendData(I2C1, reg_addr);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
-    {
-        if (--timeout == 0U)
-        {
-            I2C_GenerateSTOP(I2C1, ENABLE);
-            return HAL_I2C_TIMEOUT;
-        }
-    }
+    I2C1->DR = (uint32_t)addr << 1;
+    if (!wait_flag(I2C_SR1_ADDR)) { goto fail; }
+    (void)I2C1->SR2;
+    if (!wait_flag(I2C_SR1_TXE)) { goto fail; }
 
-    /* 5. Gửi dữ liệu */
-    for (uint16_t i = 0; i < len; i++)
-    {
-        I2C_SendData(I2C1, data[i]);
-        timeout = I2C_TIMEOUT_CYCLES;
-        while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
-        {
-            if (--timeout == 0U)
-            {
-                I2C_GenerateSTOP(I2C1, ENABLE);
-                return HAL_I2C_TIMEOUT;
-            }
-        }
-    }
+    I2C1->DR = reg;
+    if (!wait_flag(I2C_SR1_BTF)) { goto fail; }
 
-    /* 6. Gửi STOP */
-    I2C_GenerateSTOP(I2C1, ENABLE);
-    return HAL_I2C_OK;
+    I2C1->CR1 |= I2C_CR1_START;
+    if (!wait_flag(I2C_SR1_SB)) { goto fail; }
+
+    I2C1->DR = ((uint32_t)addr << 1) | 1U;
+    if (!wait_flag(I2C_SR1_ADDR)) { goto fail; }
+
+    taskENTER_CRITICAL();
+    I2C1->CR1 &= ~I2C_CR1_ACK;
+    (void)I2C1->SR2;
+    I2C1->CR1 |= I2C_CR1_STOP;
+    taskEXIT_CRITICAL();
+
+    if (!wait_flag(I2C_SR1_RXNE)) { goto fail; }
+    *data = (uint8_t)I2C1->DR;
+
+    guard = 100000U;
+    while ((I2C1->CR1 & I2C_CR1_STOP) != 0U && --guard != 0U) { }
+    I2C1->CR1 |= I2C_CR1_ACK;
+    return guard != 0U ? HAL_I2C_OK : HAL_I2C_TIMEOUT;
+
+fail:
+    I2C1->CR1 |= I2C_CR1_STOP | I2C_CR1_ACK;
+    I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
+    return HAL_I2C_TIMEOUT;
 }
 
 hal_i2c_status_t hal_i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
-    if (data == 0 || len == 0U)
+    if (data == NULL || len == 0U)
     {
         return HAL_I2C_INVALID_ARGUMENT;
     }
-
-    uint32_t timeout = I2C_TIMEOUT_CYCLES;
-    uint8_t raw_addr = (uint8_t)(dev_addr << 1);
-
-    /* 1. Chờ bus rảnh */
-    while (I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY))
+    for (uint16_t i = 0; i < len; ++i)
     {
-        if (--timeout == 0U)
+        hal_i2c_status_t status = read_byte(dev_addr, (uint8_t)(reg_addr + i), &data[i]);
+        if (status != HAL_I2C_OK)
         {
-            hal_i2c_bus_reset();
-            return HAL_I2C_TIMEOUT;
+            return status;
         }
     }
-
-    /* 2. Gửi START để ghi thanh ghi muốn đọc */
-    I2C_GenerateSTART(I2C1, ENABLE);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT))
-    {
-        if (--timeout == 0U)
-        {
-            hal_i2c_bus_reset();
-            return HAL_I2C_TIMEOUT;
-        }
-    }
-
-    /* 3. Gửi địa chỉ slave + write */
-    I2C_Send7bitAddress(I2C1, raw_addr, I2C_Direction_Transmitter);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
-    {
-        if (--timeout == 0U)
-        {
-            I2C_GenerateSTOP(I2C1, ENABLE);
-            return HAL_I2C_TIMEOUT;
-        }
-    }
-
-    /* 4. Gửi thanh ghi cần đọc */
-    I2C_SendData(I2C1, reg_addr);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED))
-    {
-        if (--timeout == 0U)
-        {
-            I2C_GenerateSTOP(I2C1, ENABLE);
-            return HAL_I2C_TIMEOUT;
-        }
-    }
-
-    /* 5. Gửi Repeated START để chuyển sang đọc */
-    I2C_GenerateSTART(I2C1, ENABLE);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT))
-    {
-        if (--timeout == 0U)
-        {
-            hal_i2c_bus_reset();
-            return HAL_I2C_TIMEOUT;
-        }
-    }
-
-    /* 6. Gửi địa chỉ slave + read */
-    I2C_Send7bitAddress(I2C1, raw_addr, I2C_Direction_Receiver);
-    timeout = I2C_TIMEOUT_CYCLES;
-    while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED))
-    {
-        if (--timeout == 0U)
-        {
-            I2C_GenerateSTOP(I2C1, ENABLE);
-            return HAL_I2C_TIMEOUT;
-        }
-    }
-
-    /* 7. Đọc dữ liệu */
-    for (uint16_t i = 0; i < len; i++)
-    {
-        if (i == (len - 1U))
-        {
-            /* Byte cuối cùng: Tắt ACK và phát tín hiệu STOP */
-            I2C_AcknowledgeConfig(I2C1, DISABLE);
-            I2C_GenerateSTOP(I2C1, ENABLE);
-        }
-
-        timeout = I2C_TIMEOUT_CYCLES;
-        while (!I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED))
-        {
-            if (--timeout == 0U)
-            {
-                I2C_AcknowledgeConfig(I2C1, ENABLE);
-                return HAL_I2C_TIMEOUT;
-            }
-        }
-        data[i] = I2C_ReceiveData(I2C1);
-    }
-
-    /* Bật lại ACK cho các lần sau */
-    I2C_AcknowledgeConfig(I2C1, ENABLE);
     return HAL_I2C_OK;
-}
-
-hal_i2c_status_t hal_i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val)
-{
-    return hal_i2c_write(dev_addr, reg_addr, &val, 1U);
 }
 
 hal_i2c_status_t hal_i2c_read_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *val)
 {
     return hal_i2c_read(dev_addr, reg_addr, val, 1U);
+}
+
+hal_i2c_status_t hal_i2c_write(uint8_t dev_addr, uint8_t reg_addr, const uint8_t *data, uint16_t len)
+{
+    if (data == NULL || len == 0U)
+    {
+        return HAL_I2C_INVALID_ARGUMENT;
+    }
+    hal_i2c_bus_reset();
+    I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
+    I2C1->CR1 |= I2C_CR1_START;
+    if (!wait_flag(I2C_SR1_SB)) { goto error; }
+
+    I2C1->DR = (uint32_t)dev_addr << 1;
+    if (!wait_flag(I2C_SR1_ADDR)) { goto error; }
+    (void)I2C1->SR2;
+    if (!wait_flag(I2C_SR1_TXE)) { goto error; }
+
+    I2C1->DR = reg_addr;
+    if (!wait_flag(I2C_SR1_BTF)) { goto error; }
+
+    for (uint16_t i = 0; i < len; ++i)
+    {
+        I2C1->DR = data[i];
+        if (!wait_flag(I2C_SR1_BTF)) { goto error; }
+    }
+
+    I2C1->CR1 |= I2C_CR1_STOP;
+    for (uint32_t guard = 100000U; guard != 0U; --guard)
+    {
+        if ((I2C1->CR1 & I2C_CR1_STOP) == 0U)
+        {
+            return HAL_I2C_OK;
+        }
+    }
+
+error:
+    I2C1->CR1 |= I2C_CR1_STOP;
+    return HAL_I2C_TIMEOUT;
+}
+
+hal_i2c_status_t hal_i2c_write_reg(uint8_t dev_addr, uint8_t reg_addr, uint8_t val)
+{
+    return hal_i2c_write(dev_addr, reg_addr, &val, 1U);
 }
