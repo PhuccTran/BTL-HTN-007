@@ -1,35 +1,40 @@
-/* STM32F103C8T6: startup calls SystemInit() to configure HSE 8 MHz * 9 = 72 MHz. */
+/* Complete layered project entry: create IPC/tasks, then start FreeRTOS. */
 #include "FreeRTOS.h"
 #include "task.h"
-#include "stm32f10x.h"
-#include "app_uart.h"
-#include "app_led.h"
-#include "app_bmi160.h"
+#include "stm32f4xx.h"
+#include "game_config.h"
+#include "app_game_ipc.h"
+#include "task_display.h"
+#include "task_sensor_game.h"
+#include "task_game.h"
+#include "task_button.h"
+#include "task_telemetry.h"
+
+_Static_assert(pdMS_TO_TICKS(GAME_STEP_MS) > 0U, "Game period below tick");
+_Static_assert(pdMS_TO_TICKS(APP_BUTTON_PERIOD_MS) > 0U, "Button period below tick");
+
+volatile size_t g_game_heap_before_scheduler;
 
 int main(void)
 {
-    /* Update SystemCoreClock to reflect the hardware frequency set in SystemInit. */
     SystemCoreClockUpdate();
-
-    /* FreeRTOS requires priority bits configured for preemption. */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_3);
-
-    /* The top app layer owns resource initialization and task creation. */
-    BaseType_t status = app_uart_start();
-    configASSERT(status == pdPASS);
-
-    status = app_led_start();
-    configASSERT(status == pdPASS);
-
-    status = app_bmi160_start();
-    configASSERT(status == pdPASS);
-
+    NVIC_SetPriorityGrouping(3U);
+    /* Firmware is built with BSP_DISPLAY_USE_DMA=0. No external IRQ is enabled
+     * by the game, button or sensor tasks. FreeRTOS owns SysTick/PendSV/SVC. */
+    configASSERT(task_display_create() == pdPASS);
+    configASSERT(app_game_ipc_init() == pdPASS);
+    configASSERT(task_sensor_game_create() == pdPASS);
+    configASSERT(task_game_create() == pdPASS);
+    configASSERT(task_button_create() == pdPASS);
+    configASSERT(task_telemetry_create() == pdPASS);
+    g_game_heap_before_scheduler = xPortGetFreeHeapSize();
+    /* Idle+timer stacks/TCBs, timer command queue, BMI mutex, and a margin.
+     * The true runtime heap and stack watermarks still require board testing. */
+    const size_t reserve = (configMINIMAL_STACK_SIZE + configTIMER_TASK_STACK_DEPTH) *
+        sizeof(StackType_t) + 2U * sizeof(StaticTask_t) + 2U * sizeof(StaticQueue_t) +
+        configTIMER_QUEUE_LENGTH * 16U + 256U;
+    configASSERT(g_game_heap_before_scheduler >= reserve);
     vTaskStartScheduler();
-
-    /* The scheduler should never return. If it returns, heap allocation failed. */
     configASSERT(pdFALSE);
-    taskDISABLE_INTERRUPTS();
-    for (;;)
-    {
-    }
+    for (;;) { }
 }

@@ -21,7 +21,7 @@ void vAssertCalled(const char *file, unsigned long line);
 
 #define configSUPPORT_STATIC_ALLOCATION          0
 #define configSUPPORT_DYNAMIC_ALLOCATION         1
-#define configTOTAL_HEAP_SIZE                    (8U * 1024U)
+#define configTOTAL_HEAP_SIZE                    (10U * 1024U)
 #define configAPPLICATION_ALLOCATED_HEAP         0
 #define configUSE_MALLOC_FAILED_HOOK             1
 #define configCHECK_FOR_STACK_OVERFLOW           2
@@ -69,6 +69,7 @@ void vAssertCalled(const char *file, unsigned long line);
 #define INCLUDE_uxTaskPriorityGet                1
 #define INCLUDE_vTaskPrioritySet                 1
 #define INCLUDE_xTaskGetSchedulerState           1
+#define INCLUDE_xTaskGetIdleTaskHandle           1
 #define INCLUDE_uxTaskGetStackHighWaterMark       1
 
 #endif

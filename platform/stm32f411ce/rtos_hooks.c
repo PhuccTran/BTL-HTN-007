@@ -25,8 +25,3 @@ void vApplicationStackOverflowHook(TaskHandle_t task, char *name)
     vAssertCalled("FreeRTOS task stack overflow", 0UL);
 }
 
-/* SPL assert hook; implemented here so each application layer stays a pair. */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-    vAssertCalled((const char *)file, (unsigned long)line);
-}
