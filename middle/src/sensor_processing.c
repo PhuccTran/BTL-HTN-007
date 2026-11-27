@@ -5,7 +5,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <stddef.h>
-#include <string.h>
 
 #define BMI160_I2C_ADDR_LOW     0x68U
 #define BMI160_I2C_ADDR_HIGH    0x69U
@@ -26,37 +25,19 @@ _Static_assert(GAME_Y_SIGN == 1 || GAME_Y_SIGN == -1, "Invalid Y sign");
 
 static uint8_t s_device_addr = BMI160_I2C_ADDR_LOW;
 
-void sensor_processing_init(SensorProcessing_t *state)
+void sensor_processing_update(int16_t raw_x, int16_t raw_y, SensorSample_t *sample)
 {
-    memset(state, 0, sizeof(*state));
-    state->swap_xy = (GAME_SWAP_AXES != 0);
-    state->sign_x = GAME_X_SIGN;
-    state->sign_y = GAME_Y_SIGN;
-}
-
-void sensor_processing_set_orientation(SensorProcessing_t *state, bool swap_xy,
-                                       int8_t sign_x, int8_t sign_y)
-{
-    if (state == NULL) { return; }
-    state->swap_xy = swap_xy;
-    state->sign_x = (sign_x < 0) ? -1 : 1;
-    state->sign_y = (sign_y < 0) ? -1 : 1;
-}
-
-void sensor_processing_update(SensorProcessing_t *state, int16_t raw_x,
-                              int16_t raw_y, SensorSample_t *sample)
-{
-    if (state == NULL || sample == NULL) { return; }
+    if (sample == NULL) { return; }
 
     int16_t ox = (int16_t)((int32_t)raw_x * 1000 / 16384);
     int16_t oy = (int16_t)((int32_t)raw_y * 1000 / 16384);
-    if (state->swap_xy) {
-        int16_t swap = ox;
-        ox = oy;
-        oy = swap;
-    }
-    sample->ax_mg = (int16_t)(ox * state->sign_x);
-    sample->ay_mg = (int16_t)(oy * state->sign_y);
+#if GAME_SWAP_AXES
+    int16_t swap = ox;
+    ox = oy;
+    oy = swap;
+#endif
+    sample->ax_mg = (int16_t)(ox * GAME_X_SIGN);
+    sample->ay_mg = (int16_t)(oy * GAME_Y_SIGN);
     sample->valid = true;
 }
 

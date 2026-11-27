@@ -230,8 +230,8 @@ void game_core_step(Game_t *game, int16_t ax_mg, int16_t ay_mg, uint32_t now_ms)
     game->filtered_ay += (ay - game->filtered_ay) / 4;
     ax = prvTiltDrive(game->filtered_ax); ay = prvTiltDrive(game->filtered_ay);
     /* a = 0.3 * shaped tilt drive px/s^2; friction = 0.92 per 20 ms. */
-    game->vx_q = game->vx_q * 92 / 100 + ax * GAME_Q * 3 * (int32_t)GAME_STEP_MS / 10000;
-    game->vy_q = game->vy_q * 92 / 100 + ay * GAME_Q * 3 * (int32_t)GAME_STEP_MS / 10000;
+    game->vx_q = game->vx_q * 92 / 100 + ax * GAME_Q * 6 * (int32_t)GAME_STEP_MS / 10000;
+    game->vy_q = game->vy_q * 92 / 100 + ay * GAME_Q * 6 * (int32_t)GAME_STEP_MS / 10000;
     if (ax == 0 && prvAbs(game->vx_q) < GAME_Q) { game->vx_q = 0; }
     if (ay == 0 && prvAbs(game->vy_q) < GAME_Q) { game->vy_q = 0; }
     /* L1 bound also keeps Euclidean speed within the configured limit. */
