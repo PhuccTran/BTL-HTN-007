@@ -3,15 +3,13 @@
 
 #include <stdint.h>
 
-#define STAR_MAZE_NUM_LEVELS  5U /*5 màn chơi/
-#define STAR_MAZE_ROWS       12U
+#define STAR_MAZE_NUM_LEVELS  5U /*5 màn chơi*/
+#define STAR_MAZE_ROWS       12U/*bản đồ 12x12*/
 #define STAR_MAZE_COLS       12U
-#define STAR_MAZE_CELL_PX    10U
-#define STAR_MAZE_OFFSET_X   4U
+#define STAR_MAZE_CELL_PX    10U/*mỗi ô là 10 điểm ảnh*/
+#define STAR_MAZE_OFFSET_X   4U/*tọa độ điểm bắt đầu vẽ*/
 #define STAR_MAZE_OFFSET_Y   25U
 
-/* Tile IDs: 0=floor, 1=wall, 2=start, 3=goal,
-   4=collectible star, 5=trap. There are no heart items. */
 enum { TILE_FLOOR=0, TILE_WALL=1, TILE_START=2, TILE_GATE=3,
        TILE_STAR=4, TILE_TRAP=5 };
 
