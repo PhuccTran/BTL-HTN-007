@@ -35,8 +35,13 @@ giúp định vị ngay ô cần xóa sao mà không phải quét lại ma trậ
 
 
 void task_display_render_reset(DisplayRender_t *r);
+/*Khởi tạo hoặc đưa toàn bộ cấu trúc DisplayRender_t về trạng thái trống ban đầu*/
 bool task_display_render_validate(const DisplayMsg_t *msg);
+/*Kiểm tra tính hợp lệ của bản tin IPC đầu vào trước khi xử lý (ví dụ: kiểm tra phạm vi tọa độ bóng [3, 116], level từ 1..5, lives từ 0..3, số sao total_stars khớp với số ô DISPLAY_TILE_STAR trên bản đồ, và collected_stars khớp với số bit 1 trong collected_star_mask).*/
 hal_st7735_status_t task_display_render_apply(DisplayRender_t *r,const DisplayMsg_t *msg);
+/*: Tiếp nhận bản tin msg đã hợp lệ, cập nhật trạng thái vào r theo loại bản tin (SCENE, UPDATE, NOTICE, RESUME) và gọi các hàm driver ST7735 để vẽ lên màn hình; trả về mã lỗi hoặc thành công của giao tiếp phần cứng.*/
 hal_st7735_status_t task_display_render_refresh(DisplayRender_t *r);
+/*Đồng bộ lại những thay đổi đang chờ (dirty == true) từ bộ nhớ đệm r ra màn hình vật lý (thường dùng khi lần vẽ trước gặp lỗi SPI hoặc khi cần làm mới khung hình định kỳ).*/
 void task_display_render_invalidate(DisplayRender_t *r);
+/*Đánh dấu vùng đệm màn hình đã cũ (painted_valid = false, dirty = true), ép buộc lần gọi vẽ kế tiếp phải dựng lại toàn bộ giao diện (HUD, mê cung, bóng và footer) thay vì chỉ vẽ phần thay đổi.*/
 #endif
