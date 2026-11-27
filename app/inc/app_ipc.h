@@ -39,12 +39,25 @@ typedef struct {
     uint16_t collected_star_mask;
     uint8_t ball_x, ball_y, lives, collected_stars, gate_open;
 } DisplayUpdate_t;
+/*Gói dữ liệu cập nhật trạng thái tức thời (kích thước gọn nhẹ 8 bytes sau căn lề):
+*uint16_t collected_star_mask: Bitmask cho biết những ngôi sao nào đã được thu thập
+*ball_x, ball_y: tọa độ của bóng
+*lives: số mạng còn lại
+*collected_stars:Tổng số sao đã ăn được trong màn (phải khớp với tổng số bit 1 trong collected_star_mask).
+*gate_open;: Trạng thái cổng đích (0 = đóng, 1 = mở).*/
+
 typedef struct {
     DisplayUpdate_t hud;
     uint8_t level; /* 1..5. */
     uint8_t total_stars;
     uint8_t tiles[APP_DISPLAY_ROWS][APP_DISPLAY_COLS];
 } DisplayScene_t;
+/*Cấu trúc này chứa toàn bộ thông tin của một màn chơi:
+*HUD: vị trí nhân vật, HP, số sao, trạng thái cổng
+*Level hiện tại.
+*Tổng số sao.
+*bản đồ 12x12*/
+
 typedef struct {
     DisplayMsgType_t type;
     uint32_t scene_id;
@@ -54,19 +67,11 @@ typedef struct {
         DisplayNotice_t notice;
     } data;
 } DisplayMsg_t;
+/*Đây là cấu trúc message hoàn chỉnh được đưa vào Queue.
+*DisplayMsgType_t type;: Trường nhãn xác định loại bản tin đang gửi
+*uint32_t scene_id;: Mã định danh phiên của màn chơi
+*Vùng nhớ dùng chung (union) giúp tiết kiệm RAM bằng cách chỉ cấp phát kích thước bằng thành phần lớn nhất (DisplayScene_t)
+chứa một trong ba dữ liệu tùy theo type: scene (khi nạp màn), update (khi cập nhật khung hình),
+hoặc notice (khi hiện thông báo; riêng DISPLAY_MSG_RESUME không cần dữ liệu kèm theo).*/
 
-/* Quy ước: SCENE rồi UPDATE; NOTICE giữ màn thông báo vô thời hạn về mặt
- * trạng thái, task vẫn chờ Queue hữu hạn. Gửi SCENE/UPDATE khi đang thông báo
- * chỉ lưu dữ liệu mới. Game gửi RESUME sau thời gian muốn hiển thị thông báo.
- * collected_star_mask: bit 0 là sao đầu tiên theo thứ tự hàng rồi cột trong
- * tiles SCENE; bit=1 nghĩa là game báo đã nhặt. Tối đa 16 sao/màn.
- * Giữ nguyên tiles gốc trong SCENE, KHÔNG đổi tile STAR thành FLOOR trong
- * UPDATE. Renderer ẩn sao bằng mask. collected_stars phải bằng popcount(mask).
- * total_stars của SCENE phải khớp số tile STAR. gate_open do GAME gửi (0/1),
- * chỉ cho phép mở khi collected_stars==total_stars. Display không tự mở cổng,
- * trừ tim, nhặt sao hay chuyển màn. lives=0..3, dùng chung 5 màn do game giữ.
- * Trúng bẫy: UPDATE tọa độ/lives, NOTICE TRAP, UPDATE về đầu màn với cùng ID
- * và cùng mask sao, RESUME. Restart/đổi màn: SCENE với ID mới.
- * Queue đầy -> producer nhận pdFAIL và tự retry hữu hạn; không bỏ sự kiện.
- */
 #endif
