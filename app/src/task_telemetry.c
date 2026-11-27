@@ -33,7 +33,7 @@ static void prvTelemetryTask(void *argument)
                        (unsigned)ram.min_free_bytes);
         hal_uart_write(buf);
 
-        (void)xTaskDelayUntil(&wake, pdMS_TO_TICKS(APP_TELEMETRY_PERIOD_MS));
+        (void)xTaskDelayUntil(&wake, pdMS_TO_TICKS(APP_TELEMETRY_PERIOD_MS)); // delay 1s
     }
 }
 
@@ -45,4 +45,4 @@ BaseType_t task_telemetry_create(void)
     if (s_telemetry_task != NULL) { return pdPASS; }
     return xTaskCreate(prvTelemetryTask, "TELEMETRY", APP_TELEMETRY_STACK_WORDS, NULL,
                        APP_TELEMETRY_PRIORITY, &s_telemetry_task);
-}
+} // ham tao task

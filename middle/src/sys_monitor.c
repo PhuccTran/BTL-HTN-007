@@ -4,7 +4,7 @@
 #include "task.h"
 #include <string.h>
 
-uint8_t sys_monitor_calc_cpu_load(void)
+uint8_t sys_monitor_calc_cpu_load(void) // hàm này dùng để tính toán tải CPU, trả về giá trị từ 0 đến 100
 {
     static uint32_t s_prev_total = 0U;
     static uint32_t s_prev_idle = 0U;
@@ -34,7 +34,7 @@ uint8_t sys_monitor_calc_cpu_load(void)
     return load > 100U ? 100U : load;
 }
 
-void sys_monitor_calc_ram_usage(SysRamUsage_t *out)
+void sys_monitor_calc_ram_usage(SysRamUsage_t *out) // hàm này dùng để tính toán mức sử dụng RAM, trả về thông tin trong cấu trúc SysRamUsage_t
 {
     if (out == NULL) { return; }
 

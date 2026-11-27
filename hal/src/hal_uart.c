@@ -42,7 +42,7 @@ bool hal_uart_init(uint32_t baudrate)
     return true;
 }
 
-static void uart_write_char(char c)
+static void uart_write_char(char c) 
 {
     for (uint32_t guard = UART_TX_TIMEOUT_GUARD; guard != 0U; --guard) {
         if ((USART1->SR & USART_SR_TXE) != 0U) {
@@ -52,7 +52,7 @@ static void uart_write_char(char c)
     }
 }
 
-void hal_uart_write(const char *str)
+void hal_uart_write(const char *str) // ham này dùng để gửi chuỗi ra UART
 {
     if (str == NULL) { return; }
     while (*str != '\0') {
