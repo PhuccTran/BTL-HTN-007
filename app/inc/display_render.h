@@ -43,5 +43,5 @@ hal_st7735_status_t task_display_render_apply(DisplayRender_t *r,const DisplayMs
 hal_st7735_status_t task_display_render_refresh(DisplayRender_t *r);
 /*Đồng bộ lại những thay đổi đang chờ (dirty == true) từ bộ nhớ đệm r ra màn hình vật lý (thường dùng khi lần vẽ trước gặp lỗi SPI hoặc khi cần làm mới khung hình định kỳ).*/
 void task_display_render_invalidate(DisplayRender_t *r);
-/*Đánh dấu vùng đệm màn hình đã cũ (painted_valid = false, dirty = true), ép buộc lần gọi vẽ kế tiếp phải dựng lại toàn bộ giao diện (HUD, mê cung, bóng và footer) thay vì chỉ vẽ phần thay đổi.*/
+/*Dùng khi có lỗi vẽ, khi đổi màn, hoặc khi đóng bảng thông báo*/
 #endif
