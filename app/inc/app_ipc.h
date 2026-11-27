@@ -28,6 +28,13 @@ typedef enum {
     DISPLAY_NOTICE_COMPLETE=0, DISPLAY_NOTICE_RESTART, DISPLAY_NOTICE_TRAP,
     DISPLAY_NOTICE_YOU_WIN, DISPLAY_NOTICE_GAME_OVER
 } DisplayNotice_t;
+/*Định danh 5 loại nội dung thông báo đi kèm bản tin DISPLAY_MSG_NOTICE:
+*DISPLAY_NOTICE_COMPLETE = 0: Hoàn thành màn chơi hiện tại.
+*DISPLAY_NOTICE_RESTART: Khởi động lại màn chơi
+*DISPLAY_NOTICE_TRAP: Người chơi vừa chạm bẫy
+*DISPLAY_NOTICE_YOU_WIN: Chiến thắng toàn bộ trò chơi (qua hết 5 màn)
+*DISPLAY_NOTICE_GAME_OVER: Hết mạng (lives == 0), thua cuộc*/
+
 typedef struct {
     uint16_t collected_star_mask;
     uint8_t ball_x, ball_y, lives, collected_stars, gate_open;
