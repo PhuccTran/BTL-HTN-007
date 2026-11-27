@@ -3,8 +3,6 @@
 #include <string.h>
 
 _Static_assert(STAR_MAZE_NUM_LEVELS == 5U, "Game requires five maps");
-_Static_assert(GAME_X_SIGN == 1 || GAME_X_SIGN == -1, "Invalid X sign");
-_Static_assert(GAME_Y_SIGN == 1 || GAME_Y_SIGN == -1, "Invalid Y sign");
 _Static_assert(GAME_TILT_BOOST_START_MG > 0 &&
                GAME_TILT_INPUT_LIMIT_MG >= GAME_TILT_BOOST_START_MG, "Invalid tilt curve");
 
@@ -228,10 +226,6 @@ void game_core_step(Game_t *game, int16_t ax_mg, int16_t ay_mg, uint32_t now_ms)
 {
     if (game->state != GAME_PLAYING) { (void)prvAdvanceNotice(game, now_ms); return; }
     int32_t ax = ax_mg, ay = ay_mg;
-#if GAME_SWAP_AXES
-    int32_t swap = ax; ax = ay; ay = swap;
-#endif
-    ax *= GAME_X_SIGN; ay *= GAME_Y_SIGN;
     game->filtered_ax += (ax - game->filtered_ax) / 4;
     game->filtered_ay += (ay - game->filtered_ay) / 4;
     ax = prvTiltDrive(game->filtered_ax); ay = prvTiltDrive(game->filtered_ay);

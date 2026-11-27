@@ -28,17 +28,18 @@ bool hal_uart_init(uint32_t baudrate)
 
     /* PA9: Alternate Function (2), Push-Pull (0), High Speed (2), Pull-up (1), AF7 */
     const uint32_t pin = 9U;
-    GPIOA->OTYPER &= ~(1U << pin);
-    GPIOA->OSPEEDR = (GPIOA->OSPEEDR & ~(3U << (pin * 2U))) | (2U << (pin * 2U));
-    GPIOA->PUPDR = (GPIOA->PUPDR & ~(3U << (pin * 2U))) | (1U << (pin * 2U));
-    GPIOA->AFR[1] = (GPIOA->AFR[1] & ~(0xFU << ((pin - 8U) * 4U))) | (7U << ((pin - 8U) * 4U));
-    GPIOA->MODER = (GPIOA->MODER & ~(3U << (pin * 2U))) | (2U << (pin * 2U));
+    GPIOA->OTYPER &= ~(1U << pin); // Push-Pull
+    GPIOA->OSPEEDR = (GPIOA->OSPEEDR & ~(3U << (pin * 2U))) | (2U << (pin * 2U)); // High Speed
+    GPIOA->PUPDR = (GPIOA->PUPDR & ~(3U << (pin * 2U))) | (1U << (pin * 2U)); // Pull-up
+    GPIOA->AFR[1] = (GPIOA->AFR[1] & ~(0xFU << ((pin - 8U) * 4U))) | (7U << ((pin - 8U) * 4U)); // AF7
+    GPIOA->MODER = (GPIOA->MODER & ~(3U << (pin * 2U))) | (2U << (pin * 2U)); // Alternate Function
+    // setup gpio 
 
-    USART1->CR1 = 0U;
-    USART1->CR2 = 0U;
-    USART1->CR3 = 0U;
-    USART1->BRR = brr;
-    USART1->CR1 = USART_CR1_TE | USART_CR1_UE;
+    USART1->CR1 = 0U; // disable uart
+    USART1->CR2 = 0U; // 1 stop bit, no parity
+    USART1->CR3 = 0U; // no flow control
+    USART1->BRR = brr; // set baudrate
+    USART1->CR1 = USART_CR1_TE | USART_CR1_UE; // enable transmitter and uart
     return true;
 }
 

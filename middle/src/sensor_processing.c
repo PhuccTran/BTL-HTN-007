@@ -1,4 +1,4 @@
-/* Layer 2 (Middle): BMI160 driver + Chuyen doi don vi & hieu chuan */
+/* Layer 2 (Middle): BMI160 driver + Chuyen doi don vi & huong */
 #include "sensor_processing.h"
 #include "game_config.h"
 #include "hal_i2c.h"
@@ -21,42 +21,43 @@
 #define BMI160_CMD_SOFT_RESET   0xB6U
 #define BMI160_CMD_ACC_NORMAL   0x11U
 
+_Static_assert(GAME_X_SIGN == 1 || GAME_X_SIGN == -1, "Invalid X sign");
+_Static_assert(GAME_Y_SIGN == 1 || GAME_Y_SIGN == -1, "Invalid Y sign");
+
 static uint8_t s_device_addr = BMI160_I2C_ADDR_LOW;
 
 void sensor_processing_init(SensorProcessing_t *state)
-{ memset(state, 0, sizeof(*state)); }
+{
+    memset(state, 0, sizeof(*state));
+    state->swap_xy = (GAME_SWAP_AXES != 0);
+    state->sign_x = GAME_X_SIGN;
+    state->sign_y = GAME_Y_SIGN;
+}
 
-void sensor_processing_reset_window(SensorProcessing_t *state)
-{ state->count = 0U; state->sum_x = 0; state->sum_y = 0; }
+void sensor_processing_set_orientation(SensorProcessing_t *state, bool swap_xy,
+                                       int8_t sign_x, int8_t sign_y)
+{
+    if (state == NULL) { return; }
+    state->swap_xy = swap_xy;
+    state->sign_x = (sign_x < 0) ? -1 : 1;
+    state->sign_y = (sign_y < 0) ? -1 : 1;
+}
 
 void sensor_processing_update(SensorProcessing_t *state, int16_t raw_x,
                               int16_t raw_y, SensorSample_t *sample)
 {
-    int16_t ax = (int16_t)((int32_t)raw_x * 1000 / 16384);
-    int16_t ay = (int16_t)((int32_t)raw_y * 1000 / 16384);
-    if (!state->calibrated) {
-        if (state->count == 0U) {
-            state->min_x = ax; state->max_x = ax;
-            state->min_y = ay; state->max_y = ay;
-        }
-        if (ax < state->min_x) { state->min_x = ax; }
-        if (ax > state->max_x) { state->max_x = ax; }
-        if (ay < state->min_y) { state->min_y = ay; }
-        if (ay > state->max_y) { state->max_y = ay; }
-        state->sum_x += ax; state->sum_y += ay; ++state->count;
-        if (state->max_x - state->min_x > APP_SENSOR_CAL_SPREAD_MG ||
-            state->max_y - state->min_y > APP_SENSOR_CAL_SPREAD_MG) {
-            sensor_processing_reset_window(state); ++state->calibration_restarts;
-        }
-        if (state->count >= APP_SENSOR_CAL_SAMPLES) {
-            state->offset_x_mg = (int16_t)(state->sum_x / (int32_t)state->count);
-            state->offset_y_mg = (int16_t)(state->sum_y / (int32_t)state->count);
-            state->calibrated = true;
-        }
+    if (state == NULL || sample == NULL) { return; }
+
+    int16_t ox = (int16_t)((int32_t)raw_x * 1000 / 16384);
+    int16_t oy = (int16_t)((int32_t)raw_y * 1000 / 16384);
+    if (state->swap_xy) {
+        int16_t swap = ox;
+        ox = oy;
+        oy = swap;
     }
-    sample->ax_mg = (int16_t)(ax - state->offset_x_mg);
-    sample->ay_mg = (int16_t)(ay - state->offset_y_mg);
-    sample->valid = state->calibrated;
+    sample->ax_mg = (int16_t)(ox * state->sign_x);
+    sample->ay_mg = (int16_t)(oy * state->sign_y);
+    sample->valid = true;
 }
 
 bool bmi160_configure(void)

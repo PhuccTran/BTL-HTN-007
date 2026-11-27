@@ -25,6 +25,9 @@ static void prvSensorTask(void *argument)
     bool configured = false;
     SensorProcessing_t processing;
     sensor_processing_init(&processing);
+    /* Config huong cam bien: (swap_xy, sign_x, sign_y) */
+    sensor_processing_set_orientation(&processing, GAME_SWAP_AXES != 0,
+                                      GAME_X_SIGN, GAME_Y_SIGN);
     TickType_t wake = xTaskGetTickCount();
     for (;;) {
         if (!configured) { // nếu chưa config thì config lại
@@ -38,11 +41,10 @@ static void prvSensorTask(void *argument)
         }
         int16_t raw_x, raw_y;
         SensorSample_t sample;
-        if (!bmi160_read_raw(&raw_x, &raw_y)) { // nếu đọc lỗi thì reset cửa sổ hiệu chuẩn và gửi 0,0
-            sensor_processing_reset_window(&processing);
+        if (!bmi160_read_raw(&raw_x, &raw_y)) { // nếu đọc lỗi thì gửi 0,0
             configured = false;
             prvPublish(0, 0, false);
-        } else { // nếu đọc được thì đổi đơn vị, hiệu chuẩn và gửi dữ liệu vào queue
+        } else { // nếu đọc được thì đổi đơn vị, chỉnh hướng và gửi dữ liệu vào queue
             sensor_processing_update(&processing, raw_x, raw_y, &sample);
             prvPublish(sample.ax_mg, sample.ay_mg, sample.valid);
         }

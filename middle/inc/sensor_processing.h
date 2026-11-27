@@ -4,19 +4,16 @@
 #include <stdint.h>
 
 typedef struct {
-    uint32_t count, calibration_restarts;
-    int32_t sum_x, sum_y;
-    int16_t min_x, max_x, min_y, max_y;
-    int16_t offset_x_mg, offset_y_mg;
-    bool calibrated;
+    int8_t sign_x, sign_y;
+    bool swap_xy;
 } SensorProcessing_t;
 
 typedef struct { int16_t ax_mg, ay_mg; bool valid; } SensorSample_t;
 
-/* Layer 2 (Middle): Chuyen doi don vi + hieu chuan */
+/* Layer 2 (Middle): Chuyen doi don vi + cau hinh huong */
 void sensor_processing_init(SensorProcessing_t *state);
-/* Keep a completed calibration across a transient I2C failure. */
-void sensor_processing_reset_window(SensorProcessing_t *state);
+void sensor_processing_set_orientation(SensorProcessing_t *state, bool swap_xy,
+                                       int8_t sign_x, int8_t sign_y);
 void sensor_processing_update(SensorProcessing_t *state, int16_t raw_x,
                               int16_t raw_y, SensorSample_t *sample);
 
