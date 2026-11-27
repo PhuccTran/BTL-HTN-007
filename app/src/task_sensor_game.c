@@ -28,7 +28,7 @@ static void prvSensorTask(void *argument)
     TickType_t wake = xTaskGetTickCount();
     for (;;) {
         if (!configured) { // nếu chưa config thì config lại
-            configured = sensor_game_configure();
+            configured = bmi160_configure();
             if (!configured) { // nêu config lỗi thì gửi dữ liệu 0,0 và delay 1s để retry
                 prvPublish(0, 0, false);
                 vTaskDelay(pdMS_TO_TICKS(APP_SENSOR_RETRY_MS));
@@ -36,11 +36,14 @@ static void prvSensorTask(void *argument)
             }
             wake = xTaskGetTickCount();
         }
+        int16_t raw_x, raw_y;
         SensorSample_t sample;
-        if (!sensor_game_read(&processing, &sample)) { // nếu đọc lỗi thì gửi 0 0 
+        if (!bmi160_read_raw(&raw_x, &raw_y)) { // nếu đọc lỗi thì reset cửa sổ hiệu chuẩn và gửi 0,0
+            sensor_processing_reset_window(&processing);
             configured = false;
             prvPublish(0, 0, false);
-        } else { // nếu đọc được thì gửi dữ liệu đọc được
+        } else { // nếu đọc được thì đổi đơn vị, hiệu chuẩn và gửi dữ liệu vào queue
+            sensor_processing_update(&processing, raw_x, raw_y, &sample);
             prvPublish(sample.ax_mg, sample.ay_mg, sample.valid);
         }
         (void)xTaskDelayUntil(&wake, pdMS_TO_TICKS(APP_SENSOR_PERIOD_MS));

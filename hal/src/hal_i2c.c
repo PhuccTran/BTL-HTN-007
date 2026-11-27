@@ -1,27 +1,13 @@
-/* Layer 1 (HAL): I2C1 (PB6: SCL, PB7: SDA) + BMI160 Accelerometer driver */
-#include "hal_sensor.h"
+/* Layer 1 (HAL): I2C1 (PB6: SCL, PB7: SDA) */
+#include "hal_i2c.h"
 #include "stm32f4xx.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <stddef.h>
 
-#define I2C_CLOCK_HZ            100000U
+#define I2C_CLOCK_HZ 100000U
 
-#define BMI160_I2C_ADDR_LOW     0x68U
-#define BMI160_I2C_ADDR_HIGH    0x69U
-#define BMI160_CHIP_ID_VAL      0xD1U
-
-#define BMI160_REG_CHIP_ID      0x00U
-#define BMI160_REG_PMU_STATUS   0x03U
-#define BMI160_REG_ACC_X_L      0x12U /* 0x12..0x15: ACC_X_L, ACC_X_H, ACC_Y_L, ACC_Y_H */
-#define BMI160_REG_ACC_CONF     0x40U
-#define BMI160_REG_ACC_RANGE    0x41U
-#define BMI160_REG_CMD          0x7EU
-
-#define BMI160_CMD_SOFT_RESET   0xB6U
-#define BMI160_CMD_ACC_NORMAL   0x11U
-
-static uint8_t s_device_addr = BMI160_I2C_ADDR_LOW;
+/* --- a) Clock, GPIO va khoi tao I2C1 --- */
 
 static uint32_t i2c_pclk1_hz(void)
 {
@@ -42,7 +28,7 @@ static void i2c_pins_mode(uint32_t mode)
     GPIOB->MODER = (GPIOB->MODER & ~mask) | (mode << 12U) | (mode << 14U);
 }
 
-static bool i2c_init(void)
+static bool i2c_hw_init(void)
 {
     uint32_t pclk = i2c_pclk1_hz();
     uint32_t mhz = pclk / 1000000U;
@@ -72,14 +58,16 @@ static bool i2c_init(void)
     return true;
 }
 
-static void i2c_recovery_delay(void)
+/* --- b) Phuc hoi bus & Polling co loi --- */
+
+static void i2c_recovery_delay(void) // hàm delay ngắn 
 {
     if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
         vTaskDelay(pdMS_TO_TICKS(1U));
     }
 }
 
-static void i2c_bus_reset(void)
+static void i2c_bus_reset(void) // hàm khôi phục bus i2c nếu bị treo
 {
     const uint32_t scl = 1U << 6U, sda = 1U << 7U;
     I2C1->CR1 &= ~I2C_CR1_PE;
@@ -104,10 +92,19 @@ static void i2c_bus_reset(void)
     i2c_recovery_delay();
     GPIOB->BSRR = sda;
     i2c_recovery_delay();
-    (void)i2c_init();
+    (void)i2c_hw_init();
 }
 
-static bool i2c_wait_flag(uint32_t flag)
+bool hal_i2c_init(void) // hàm khởi tạo i2c
+{
+    if (!i2c_hw_init()) { return false; }
+    if ((I2C1->SR2 & I2C_SR2_BUSY) != 0U) {
+        i2c_bus_reset();
+    }
+    return (I2C1->SR2 & I2C_SR2_BUSY) == 0U;
+}
+
+static bool i2c_wait_flag(uint32_t flag) // hàm chờ cờ I2C, nếu timeout thì return false
 {
     for (uint32_t n = 0U; n < 100000U; ++n) {
         if ((I2C1->SR1 & (I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO)) != 0U) { return false; }
@@ -116,12 +113,44 @@ static bool i2c_wait_flag(uint32_t flag)
     return false;
 }
 
-static bool i2c_read_byte(uint8_t addr, uint8_t reg, uint8_t *data)
+static bool i2c_wait_stop_clear(void) // hàm chờ stop bit clear
 {
+    for (uint32_t guard = 100000U; guard != 0U; --guard) {
+        if ((I2C1->CR1 & I2C_CR1_STOP) == 0U) { return true; }
+    }
+    return false;
+}
+
+static bool i2c_wait_idle(void) // hàm chờ bus i2c
+{
+    for (uint32_t guard = 100000U; guard != 0U; --guard) {
+        if ((I2C1->SR2 & I2C_SR2_BUSY) == 0U) { return true; }
+    }
     i2c_bus_reset();
-    uint32_t guard = 100000U;
-    while ((I2C1->SR2 & I2C_SR2_BUSY) != 0U && --guard != 0U) { }
-    if (guard == 0U) { return false; }
+    for (uint32_t guard = 100000U; guard != 0U; --guard) {
+        if ((I2C1->SR2 & I2C_SR2_BUSY) == 0U) { return true; }
+    }
+    return false;
+}
+
+static void i2c_abort(void) // ham nay dung de phuc hoi bus I2C khi co loi xay ra
+{
+    uint32_t sr1 = I2C1->SR1;
+    I2C1->CR1 |= I2C_CR1_STOP | I2C_CR1_ACK;
+    I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
+    if (!i2c_wait_stop_clear() ||
+        (I2C1->SR2 & I2C_SR2_BUSY) != 0U ||
+        (sr1 & (I2C_SR1_BERR | I2C_SR1_ARLO)) != 0U) {
+        i2c_bus_reset();
+    }
+}
+
+/* --- c) Doc / ghi thanh ghi I2C --- */
+
+bool hal_i2c_read_byte(uint8_t addr, uint8_t reg, uint8_t *data)
+{
+    if (data == NULL) { return false; }
+    if (!i2c_wait_idle()) { return false; }
 
     I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
     I2C1->CR1 |= I2C_CR1_ACK;
@@ -147,28 +176,29 @@ static bool i2c_read_byte(uint8_t addr, uint8_t reg, uint8_t *data)
 
     if (!i2c_wait_flag(I2C_SR1_RXNE)) { goto fail; }
     *data = (uint8_t)I2C1->DR;
-    guard = 100000U;
-    while ((I2C1->CR1 & I2C_CR1_STOP) != 0U && --guard != 0U) { }
+    if (!i2c_wait_stop_clear()) { goto fail; }
     I2C1->CR1 |= I2C_CR1_ACK;
-    return guard != 0U;
+    return true;
 
 fail:
-    I2C1->CR1 |= I2C_CR1_STOP | I2C_CR1_ACK;
-    I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
+    i2c_abort();
     return false;
-}
+} // ham nay dung de doc 1 byte tu thanh ghi cua thiet bi I2C
 
-static bool i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
+bool hal_i2c_read(uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len) // ham nay dung de doc nhieu byte tu thanh ghi cua thiet bi I2C
 {
+    if (data == NULL || len == 0U) { return false; }
+
     for (uint16_t i = 0U; i < len; ++i) {
-        if (!i2c_read_byte(addr, (uint8_t)(reg + i), &data[i])) { return false; }
+        if (!hal_i2c_read_byte(addr, (uint8_t)(reg + i), &data[i])) { return false; }
     }
     return true;
 }
 
-static bool i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val)
+bool hal_i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val) // ham nay dung de ghi 1 byte vao thanh ghi cua thiet bi I2C
 {
-    i2c_bus_reset();
+    if (!i2c_wait_idle()) { return false; }
+
     I2C1->SR1 &= ~(I2C_SR1_AF | I2C_SR1_BERR | I2C_SR1_ARLO);
     I2C1->CR1 |= I2C_CR1_START;
     if (!i2c_wait_flag(I2C_SR1_SB)) { goto error; }
@@ -181,59 +211,9 @@ static bool i2c_write_reg(uint8_t addr, uint8_t reg, uint8_t val)
     I2C1->DR = val;
     if (!i2c_wait_flag(I2C_SR1_BTF)) { goto error; }
     I2C1->CR1 |= I2C_CR1_STOP;
-    for (uint32_t guard = 100000U; guard != 0U; --guard) {
-        if ((I2C1->CR1 & I2C_CR1_STOP) == 0U) { return true; }
-    }
+    if (i2c_wait_stop_clear()) { return true; }
+
 error:
-    I2C1->CR1 |= I2C_CR1_STOP;
+    i2c_abort();
     return false;
-}
-
-bool hal_sensor_configure(void)
-{
-    if (!i2c_init()) { return false; }
-    vTaskDelay(pdMS_TO_TICKS(10U));
-
-    uint8_t id = 0U;
-    s_device_addr = BMI160_I2C_ADDR_LOW;
-    if (!i2c_read_byte(s_device_addr, BMI160_REG_CHIP_ID, &id) || id != BMI160_CHIP_ID_VAL) {
-        s_device_addr = BMI160_I2C_ADDR_HIGH;
-        if (!i2c_read_byte(s_device_addr, BMI160_REG_CHIP_ID, &id) || id != BMI160_CHIP_ID_VAL) {
-            return false;
-        }
-    }
-
-    if (!i2c_write_reg(s_device_addr, BMI160_REG_CMD, BMI160_CMD_SOFT_RESET)) { return false; }
-    vTaskDelay(pdMS_TO_TICKS(25U));
-
-    if (!i2c_write_reg(s_device_addr, BMI160_REG_CMD, BMI160_CMD_ACC_NORMAL)) { return false; }
-    vTaskDelay(pdMS_TO_TICKS(10U));
-
-    if (!i2c_write_reg(s_device_addr, BMI160_REG_ACC_CONF, 0x28U) ||
-        !i2c_write_reg(s_device_addr, BMI160_REG_ACC_RANGE, 0x03U)) {
-        return false;
-    }
-
-    uint8_t range = 0U, conf = 0U, pmu = 0U;
-    if (!i2c_read_byte(s_device_addr, BMI160_REG_ACC_RANGE, &range) ||
-        !i2c_read_byte(s_device_addr, BMI160_REG_ACC_CONF, &conf) ||
-        !i2c_read_byte(s_device_addr, BMI160_REG_PMU_STATUS, &pmu)) {
-        return false;
-    }
-
-    return range == 0x03U && (conf & 0x0FU) == 0x08U && (pmu & 0x30U) == 0x10U;
-}
-
-bool hal_sensor_read(int16_t *raw_x, int16_t *raw_y)
-{
-    if (raw_x == NULL || raw_y == NULL) { return false; }
-
-    uint8_t buf[4];
-    if (!i2c_read(s_device_addr, BMI160_REG_ACC_X_L, buf, sizeof(buf))) {
-        return false;
-    }
-
-    *raw_x = (int16_t)(((uint16_t)buf[1] << 8U) | buf[0]);
-    *raw_y = (int16_t)(((uint16_t)buf[3] << 8U) | buf[2]);
-    return true;
 }
