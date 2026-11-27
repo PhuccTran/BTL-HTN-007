@@ -9,9 +9,17 @@ typedef enum {
     DISPLAY_TILE_FLOOR=0, DISPLAY_TILE_WALL=1, DISPLAY_TILE_START=2,
     DISPLAY_TILE_GATE=3, DISPLAY_TILE_STAR=4, DISPLAY_TILE_TRAP=5
 } DisplayTile_t;
+/*Định danh 6 loại ô địa hình trên lưới bản đồ 12×12:
+*floor=0: đường đi trống
+*wall=1: tường chắn k thể đi qua
+*start=2: ô vị trí xuất phát ban đầu
+*gate=3: cổng đích qua màn
+*star=4: số sao cần thu thập
+*trap=5: bẫy*/
 
 typedef enum { DISPLAY_MSG_SCENE=0, DISPLAY_MSG_UPDATE, DISPLAY_MSG_NOTICE, DISPLAY_MSG_RESUME } DisplayMsgType_t;
-/*scence: gui ban do va trang thai ban dau
+/*phân loại 4 bản tin được gửi tới task hiển thị:
+*scence: gui ban do va trang thai ban dau
 *update: cap nhat vi tri bong,thanh hp, so sao da an
 *notice: yeu cau hien thi thong bao: qua man, thang thua, trung bay
 *resume: tat thong bao dang hien thi va quay lai man choi*/
