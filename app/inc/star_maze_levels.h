@@ -1,6 +1,6 @@
 #ifndef STAR_MAZE_LEVELS_H
 #define STAR_MAZE_LEVELS_H
-
+/*star_maze_levels.c cung cấp dữ liệu bản đồ mẫu. Nó không trực tiếp vẽ màn hình. Phần vẽ nằm trong display_render.c.*/
 #include <stdint.h>
 
 #define STAR_MAZE_NUM_LEVELS  5U /*5 màn chơi*/
