@@ -6,32 +6,18 @@
 
 
 typedef struct {
-    DisplayScene_t scene;
-    DisplayUpdate_t painted;
-    uint32_t scene_id;
-    DisplayNotice_t notice;
-    uint8_t star_rows[APP_DISPLAY_MAX_STARS], star_cols[APP_DISPLAY_MAX_STARS];
+    DisplayScene_t scene; /*Bản đồ 12×12 cùng thông số hiện tại (vị trí bi, tim, sao, cổng).*/
+    DisplayUpdate_t painted;/*Thông số đã vẽ thật lên LCD lần gần nhất, dùng để biết cái gì đã đổi.*/
+    uint32_t scene_id;/*Số hiệu của màn đang chơi. Message mang số hiệu khác sẽ bị bỏ qua.*/
+    DisplayNotice_t notice; /*Loại thông báo đang hiện (qua màn, chạm bẫy, thắng, thua...).*/
+    uint8_t star_rows[APP_DISPLAY_MAX_STARS], star_cols[APP_DISPLAY_MAX_STARS]; /*Danh sách vị trí các ngôi sao. Sao thứ i ứng với bit thứ i của collected_star_mask, nên biết bit nào đổi là biết ô nào cần vẽ lại.*/
     bool have_scene, overlay, dirty, painted_valid;
+/*(cờ true/false)
+have_scene: đã nhận được màn chơi nào chưa. Chưa có thì chưa có gì để vẽ.
+overlay: đang hiện bảng thông báo đè lên bản đồ.
+dirty: màn hình đang lệch so với scene, cần vẽ lại.
+painted_valid: painted còn đáng tin. Nếu false thì không được vẽ từng phần mà phải vẽ lại toàn bộ.*/
 } DisplayRender_t;
-
-/*Đóng gói toàn bộ bộ nhớ đệm (cache) và cờ trạng thái của màn hình nhằm tránh phải vẽ lại toàn bộ 128×160 pixels mỗi khung hình 
-(giúp giảm tải bus SPI và chống nháy hình):
-*DisplayScene_t scene;: Lưu trữ bản sao đầy đủ của màn chơi hiện tại, bao gồm ma trận bản đồ tiles[12][12],
-số màn level, tổng số sao total_stars và trạng thái động mới nhất nằm trong scene.hud.
-*DisplayUpdate_t painted;: Lưu trữ trạng thái động của khung hình trước đó đã được vẽ thực tế lên LCD.
-*Khi có bản tin UPDATE mới, bộ vẽ so sánh scene.hud với painted để chỉ xóa vị trí bóng cũ, vẽ bóng mới, hoặc ẩn ngôi sao vừa ăn thay vì vẽ lại cả mê cung.
-uint32_t scene_id;: Lưu mã định danh phiên của màn chơi đang hiển thị để đối chiếu tính hợp lệ với các gói UPDATE, NOTICE, RESUME gửi đến sau đó.
-DisplayNotice_t notice;: Lưu loại thông báo đang hiển thị(ví dụ: DISPLAY_NOTICE_TRAP, DISPLAY_NOTICE_YOU_WIN, DISPLAY_NOTICE_GAME_OVER) khi màn hình ở chế độ thông báo.
-*: Hai mảng tra cứu nhanh lưu tọa độ hàng và cột (0..11) của tối đa 16 ngôi sao trong màn theo thứ tự duyệt từ trên xuống dưới, trái sang phải. 
-Chỉ số mảng 0..15 tương ứng trực tiếp với từng bit của collected_star_mask,
-giúp định vị ngay ô cần xóa sao mà không phải quét lại ma trận 12×12.
-*bool have_scene;: Cờ báo hiệu bộ vẽ đã nhận được ít nhất một gói DISPLAY_MSG_SCENE hợp lệ hay chưa 
-(nếu false, các gói UPDATE sẽ bị bỏ qua).
-*bool overlay;: Cờ báo hiệu màn hình thông báo (NOTICE) đang phủ lên giao diện chơi game (true = đang hiện thông báo, tạm dừng vẽ cập nhật bản đồ).
-*bool dirty;: Cờ đánh dấu dữ liệu nội bộ đã thay đổi nhưng chưa được đẩy xuống phần cứng LCD (cần vẽ lại ở chu kỳ refresh tiếp theo).
-*bool painted_valid;: Cờ xác nhận dữ liệu trong biến painted có khớp với hình ảnh đang hiển thị trên LCD hay không
-(false khi mới nạp màn hoặc sau khi màn hình bị reset, buộc bộ vẽ phải vẽ lại toàn bộ khung hình từ đầu).
-*/
 
 
 void task_display_render_reset(DisplayRender_t *r);
@@ -41,7 +27,7 @@ bool task_display_render_validate(const DisplayMsg_t *msg);
 hal_st7735_status_t task_display_render_apply(DisplayRender_t *r,const DisplayMsg_t *msg);
 /*: Tiếp nhận bản tin msg đã hợp lệ, cập nhật trạng thái vào r theo loại bản tin (SCENE, UPDATE, NOTICE, RESUME) và gọi các hàm driver ST7735 để vẽ lên màn hình; trả về mã lỗi hoặc thành công của giao tiếp phần cứng.*/
 hal_st7735_status_t task_display_render_refresh(DisplayRender_t *r);
-/*Đồng bộ lại những thay đổi đang chờ (dirty == true) từ bộ nhớ đệm r ra màn hình vật lý (thường dùng khi lần vẽ trước gặp lỗi SPI hoặc khi cần làm mới khung hình định kỳ).*/
+/*nếu có màn và đang dirty==true là đang đúng thì vẽ lại toàn bộ, ngược lại không làm gì.*/
 void task_display_render_invalidate(DisplayRender_t *r);
-/*Dùng khi có lỗi vẽ, khi đổi màn, hoặc khi đóng bảng thông báo*/
+/*Dùng khi đánh dấu "màn hình không còn đáng tin" bằng dirty = true và painted_valid = false có lỗi vẽ, khi đổi màn, hoặc khi đóng bảng thông báo*/
 #endif
