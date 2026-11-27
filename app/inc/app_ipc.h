@@ -3,14 +3,6 @@
 #include <stdint.h>
 #include "app_cfg.h"
 
-/* SCENE giữ bản đồ gốc: level 1..5, một START, một GATE, tối đa 16 sao.
- * ball_x/y là tâm bi tương đối bản đồ, đơn vị pixel, hợp lệ 3..116.
- * Mask sao theo thứ tự hàng/cột; collected_stars = popcount(mask).
- * gate_open chỉ hợp lệ khi đã nhặt đủ sao. Game quyết định sao/tim/cổng.
- * SCENE cấp scene_id; UPDATE/NOTICE/RESUME phải khớp ID hiện hành.
- * NOTICE giữ overlay; SCENE/UPDATE chỉ lưu trạng thái đến khi nhận RESUME.
- * Queue sao chép toàn bộ message, không giữ con trỏ dữ liệu của producer.
- */
 
 #define DISPLAY_IPC_VERSION 2U
 typedef enum {
