@@ -3,21 +3,19 @@
 #include <stdint.h>
 #include "app_cfg.h"
 
-/* ĐỀ XUẤT IPC của phần màn hình - CẦN NHÓM THỐNG NHẤT trước tích hợp game.
- * Queue copy TOÀN BỘ message, không gửi con trỏ bản đồ hoặc biến dùng chung.
- * ball_x/y: tâm bi, đơn vị pixel tương đối với góc bản đồ (không phải chỉ số ô).
- * Giá trị hợp lệ [3,116]. Game chịu trách nhiệm va chạm và chuyển level.
- * scene_id tăng mỗi lần tải lại/đổi màn; UPDATE/NOTICE/RESUME phải cùng ID.
- */
-/* IPC v2 cho bộ STAR MAZE; không tương thích tile=2 của mock 3 màn cũ.
- * Giữ đúng ID của ZIP: START chỉ là nền, bi được vẽ theo tọa độ ball_x/y.
- */
 #define DISPLAY_IPC_VERSION 2U
+
 typedef enum {
     DISPLAY_TILE_FLOOR=0, DISPLAY_TILE_WALL=1, DISPLAY_TILE_START=2,
     DISPLAY_TILE_GATE=3, DISPLAY_TILE_STAR=4, DISPLAY_TILE_TRAP=5
 } DisplayTile_t;
+
 typedef enum { DISPLAY_MSG_SCENE=0, DISPLAY_MSG_UPDATE, DISPLAY_MSG_NOTICE, DISPLAY_MSG_RESUME } DisplayMsgType_t;
+/*scence: gui ban do va trang thai ban dau
+*update: cap nhat vi tri bong,thanh hp, so sao da an
+*notice: yeu cau hien thi thong bao: qua man, thang thua, trung bay
+*resume: tat thong bao dang hien thi va quay lai man choi*/
+
 typedef enum {
     DISPLAY_NOTICE_COMPLETE=0, DISPLAY_NOTICE_RESTART, DISPLAY_NOTICE_TRAP,
     DISPLAY_NOTICE_YOU_WIN, DISPLAY_NOTICE_GAME_OVER
