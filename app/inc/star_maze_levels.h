@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define STAR_MAZE_NUM_LEVELS  5U
+#define STAR_MAZE_NUM_LEVELS  5U /*5 màn chơi/
 #define STAR_MAZE_ROWS       12U
 #define STAR_MAZE_COLS       12U
 #define STAR_MAZE_CELL_PX    10U
