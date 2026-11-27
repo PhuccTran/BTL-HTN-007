@@ -2,7 +2,7 @@
 #define APP_CFG_H
 #include "FreeRTOS.h"
 /* Khai báo mới thuộc phần DISPLAY; các mục cảm biến/game do nhóm thống nhất. */
-#define APP_DISPLAY_STACK_WORDS       512U                    //Cấp phát vùng nhớ ngăn xếp (stack) cho task hiển thị là 512 words.
+#define APP_DISPLAY_STACK_WORDS       512U                    /*Cấp phát vùng nhớ ngăn xếp (stack) cho task hiển thị là 512 words. */
 #define APP_DISPLAY_PRIORITY          (tskIDLE_PRIORITY + 1U)
 #define APP_DISPLAY_QUEUE_LENGTH      2U
 #define APP_DISPLAY_QUEUE_WAIT_MS     50U
